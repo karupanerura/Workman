@@ -5,23 +5,31 @@ use utf8;
 
 use Time::HiRes;
 use Parallel::Prefork;
+use POSIX qw/SA_RESTART/;
+use Sys::SigAction qw/set_sig_handler/;
+
 use Workman::Server::Worker;
 
 use Class::Accessor::Lite new => 1, ro => [qw/profile/];
 
-our $WAIT_INTERVAL = 0.1;
-
 sub pm {
     my $self = shift;
     return $self->{_pm} ||= Parallel::Prefork->new({
-        max_workers   => $self->profile->max_workers,
-        on_child_reap => sub {
+        max_workers => $self->profile->max_workers,
+        after_fork  => sub {
+            my (undef, $pid) = @_;
             # TODO: logging
+            warn "[$pid] START WORKER";
         },
-        trap_signals  => {
+        on_child_reap => sub {
+            my (undef, $pid) = @_;
+            # TODO: logging
+            warn "[$pid] FINISH WORKER";
+        },
+        trap_signals => {
             INT  => 'TERM', # graceful shutdown (timeout: infiniy)
             TERM => 'TERM', # graceful shutdown
-            HUP  => 'TERM', # graceful restart
+            HUP  => 'HUP',  # graceful restart
         },
     });
 }
@@ -30,54 +38,84 @@ sub run {
     my $self = shift;
 
     # localize and set signal handler
-    local $SIG{INT}  = $SIG{INT};
-    local $SIG{TERM} = $SIG{TERM};
-    local $SIG{HUP}  = $SIG{HUP};
+    my $pm = $self->pm;
     $self->set_signal_handler();
 
+    # TODO: use logger
+    warn "[$$] START";
+
     my $id = 0;
-    until ($self->signal_received eq 'TERM') {
-        $self->pm->start(sub {
+    until ($pm->signal_received eq 'TERM') {
+        $pm->start(sub {
+            srand();
             Workman::Server::Worker->new(
                 id     => $id++,
                 server => $self,
             )->run;
         });
     }
-    $self->pm->wait_all_children();
+    $pm->wait_all_children();
 
-    # TODO: logging
-    #     info shutdown
+    # TODO: use logger
+    warn "[$$] SHUTDOWN";
 }
 
 sub set_signal_handler {
     my $self = shift;
 
-    for my $sig (qw/INT TERM HUP/) {
-        $SIG{$sig} = sub {
-            # TODO: logging
-            #     debug: "trap signal: $sig"
-            #     info:  "start graceful shutdown $0"
-            $self->pm->signal_all_children('TERM');
-
-            my $start_at = [Time::HiRes::gettimeofday];
-            while (Time::HiRes::tv_inteval($start_at) < $self->graceful_shutdown_timeout) {
-                # FIXME: non-blocking wait_all_children
-                #        TODO: pull-req to Parallel::Prefork
-                for my $pid (sort keys %{ $self->pm->{worker_pids} }) {
-                    $self->pm->_wait(0);
-                }
-                last unless %{ $self->pm->{worker_pids} };
-            }
-            continue {
-                Time::HiRes::sleep $WAIT_INTERVAL;
-            }
-
-            #     warn: "give up graceful shutdown. force shutdown!!";
-            $self->pm->signal_all_children('KILL'); # force kill children.
-            $self->pm->wait_all_children();
-        };
+    for my $sig (qw/INT TERM/) {
+        $self->{_signal_handler}->{$sig} = set_sig_handler($sig, sub {
+            warn "[$$] SIG$sig RECEIVED";
+            $self->pm->signal_received($self->pm->trap_signals->{$sig}) if exists $self->pm->trap_signals->{$sig};
+            $self->shutdown($sig);
+        }, {
+            flags => SA_RESTART
+        });
     }
+
+    for my $sig (qw/HUP/) {
+        $self->{_signal_handler}->{$sig} = set_sig_handler($sig, sub {
+            warn "[$$] SIG$sig RECEIVED";
+            $self->pm->signal_received($self->pm->trap_signals->{$sig}) if exists $self->pm->trap_signals->{$sig};
+            $self->kill_all_children();
+        }, {
+            flags => SA_RESTART
+        });
+    }
+}
+
+sub shutdown :method {
+    my ($self, $sig) = @_;
+
+    $self->kill_all_children();
+
+    my $start_at = [Time::HiRes::gettimeofday];
+    while (Time::HiRes::tv_interval($start_at) < $self->profile->graceful_shutdown_timeout) {
+        # FIXME: non-blocking wait_all_children
+        #        TODO: pull-req to Parallel::Prefork
+        if (my ($pid) = $self->pm->_wait(0)) {
+            if (delete $self->pm->{worker_pids}->{$pid}) {
+                $self->pm->_on_child_reap($pid, $?);
+            }
+        }
+        last unless $self->pm->num_workers;
+    }
+    continue {
+        Time::HiRes::sleep $self->profile->wait_interval;
+    }
+
+    if ($self->pm->num_workers) {
+        # TODO: use logger
+        warn "[$$] give up graceful shutdown. force shutdown!!";
+        $self->pm->signal_all_children('ABRT'); # force kill children.
+    }
+}
+
+sub kill_all_children {
+    my $self = shift;
+
+    # TODO: use logger
+    $self->pm->signal_all_children('TERM');
 }
 
 1;

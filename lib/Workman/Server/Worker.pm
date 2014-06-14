@@ -5,6 +5,9 @@ use utf8;
 
 use Carp qw/croak/;
 use Try::Tiny;
+use POSIX qw/SA_RESTART/;
+use Sys::SigAction qw/set_sig_handler/;
+
 use Workman::Server::Exception::TaskNotFound;
 
 use Class::Accessor::Lite
@@ -15,25 +18,51 @@ use Class::Accessor::Lite
 sub run {
     my $self = shift;
     $self->harakiri(0);
-
-    # localize and set signal handler
-    local $SIG{INT}  = $SIG{INT};
-    local $SIG{TERM} = $SIG{TERM};
-    local $SIG{HUP}  = $SIG{HUP};
     $self->set_signal_handler();
 
     local $0 = "$0 WORKER";
+    $self->server->profile->apply($self);
+    $self->server->profile->queue->register_tasks( $self->get_all_tasks );
     $self->dequeue_loop();
 }
 
 sub set_signal_handler {
     my $self = shift;
 
-    for my $sig (qw/INT TERM HUP/) {
-        $SIG{$sig} = sub {
-            ## TODO: logging
-            $self->harakiri(1);
-        }
+    for my $sig (qw/TERM/) {
+        $self->{_signal_handler}->{$sig} = set_sig_handler($sig, sub {
+            warn "[$$] SIG$sig RECEIVED";
+            $self->shutdown($sig);
+        }, {
+            flags => SA_RESTART
+        });
+    }
+
+    for my $sig (qw/ABRT/) {
+        $self->{_signal_handler}->{$sig} = set_sig_handler($sig, sub {
+            warn "[$$] SIG$sig RECEIVED";
+            $self->abort($sig);
+        }, {
+            flags => SA_RESTART
+        });
+    }
+}
+
+sub shutdown :method {
+    my ($self, $sig) = @_;
+
+    ## TODO: logging
+    $self->harakiri(1);
+    $self->server->profile->queue->wait_abort();
+}
+
+sub abort {
+    my ($self, $sig) = @_;
+
+    ## TODO: logging
+    $self->shutdown($sig);
+    if (my $job = $self->current_job) {
+        $job->abort("force killed.");
     }
 }
 
@@ -53,6 +82,11 @@ sub get_task {
     return $self->{_task}->{$name};
 }
 
+sub get_all_tasks {
+    my $self = shift;
+    return values %{ $self->{_task} };
+}
+
 sub dequeue_loop {
     my $self = shift;
 
@@ -60,23 +94,27 @@ sub dequeue_loop {
     my $queue = $self->server->profile->queue;
     until ($self->harakiri) {
         my $job = $queue->dequeue();
-        $self->current_job();
-        $self->work_job($job);
-        $self->harakiri(1) if --$count == 0;
+        $self->work_job($job) if defined $job;
+        $self->harakiri(1)    if --$count == 0;
     }
 }
 
 sub work_job {
     my ($self, $job) = @_;
     try {
-        # TODO: logging
-        my $task   = $self->get_task($job) or Workman::Server::Exception::TaskNotFound->throw;
+        warn "[$$] START JOB: ", $job->name;
+        my $task = $self->get_task($job) or Workman::Server::Exception::TaskNotFound->throw;
+        $self->current_job($job);
         my $result = $task->run($job->args);
         $job->done($result);
     }
     catch {
-        # TODO: logging
+        warn "[$$] ABORT JOB: ", $job->name, " Error: $_";
         $job->abort($_);
+    }
+    finally {
+        warn "[$$] FINISH JOB: ", $job->name;
+        $self->current_job(undef);
     };
 }
 
