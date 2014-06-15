@@ -62,9 +62,7 @@ sub abort {
 
     ## TODO: logging
     $self->shutdown($sig);
-    if (my $job = $self->current_job) {
-        $job->abort("force killed.");
-    }
+    die "force killed." if $self->current_job;
 }
 
 sub register_task {
