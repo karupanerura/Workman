@@ -92,7 +92,7 @@ sub enqueue {
 
 sub dequeue { shift->_recv_job() }
 
-sub wait_abort {
+sub dequeue_abort {
     my $self = shift;
     $self->{cv}->send() if $self->{cv};
 }

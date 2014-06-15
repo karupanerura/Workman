@@ -53,7 +53,7 @@ sub shutdown :method {
 
     ## TODO: logging
     $self->harakiri(1);
-    $self->server->profile->queue->wait_abort();
+    $self->server->profile->queue->dequeue_abort();
 }
 
 sub abort {

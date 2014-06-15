@@ -67,7 +67,7 @@ sub dequeue {
     );
 }
 
-sub wait_abort {
+sub dequeue_abort {
     my $self = shift;
 
     my $sth = $DBI::lasth;
