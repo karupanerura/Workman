@@ -131,7 +131,7 @@ __END__
 
 =head1 NAME
 
-Workman::Server - job-queue worker server
+Workman::Server::Worker - job-queue worker runner
 
 =head1 SYNOPSIS
 
