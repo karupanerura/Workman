@@ -58,10 +58,10 @@ sub register_tasks {
 sub enqueue {
     my ($self, $name, $args) = @_;
     my $workload = $self->_deflate($args);
+
+    my $cv = AnyEvent->condvar;
     return Workman::Request->new(
         on_wait => sub {
-            my $cv = AnyEvent->condvar;
-
             my $e;
             $self->_client->add_task(
                 $name => $workload,
@@ -80,7 +80,6 @@ sub enqueue {
             return $cv->recv;
         },
         on_background => sub {
-            my $cv = AnyEvent->condvar;
             $self->_client->add_task_bg(
                 $name => $workload,
                 on_created => sub { $cv->send },
