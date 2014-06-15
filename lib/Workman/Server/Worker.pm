@@ -29,6 +29,7 @@ sub run {
 sub set_signal_handler {
     my $self = shift;
 
+    $SIG{INT} = 'IGNORE';
     for my $sig (qw/TERM/) {
         $self->{_signal_handler}->{$sig} = set_sig_handler($sig, sub {
             warn "[$$] SIG$sig RECEIVED";
