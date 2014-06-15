@@ -29,7 +29,10 @@ sub run {
 sub set_signal_handler {
     my $self = shift;
 
-    $SIG{INT} = 'IGNORE';
+    # to ignore signal propagation
+    $SIG{HUP} = $SIG{INT} = 'IGNORE';
+
+    # to shutdown
     for my $sig (qw/TERM/) {
         $self->{_signal_handler}->{$sig} = set_sig_handler($sig, sub {
             warn "[$$] SIG$sig RECEIVED";
@@ -39,6 +42,7 @@ sub set_signal_handler {
         });
     }
 
+    # to force shutdown
     for my $sig (qw/ABRT/) {
         $self->{_signal_handler}->{$sig} = set_sig_handler($sig, sub {
             warn "[$$] SIG$sig RECEIVED";

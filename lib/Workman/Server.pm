@@ -37,16 +37,12 @@ sub pm {
 sub run {
     my $self = shift;
 
-    # localize and set signal handler
-    my $pm = $self->pm;
-    $self->set_signal_handler();
-
     # TODO: use logger
     warn "[$$] START";
 
     my $id = 0;
-    until ($pm->signal_received eq 'TERM') {
-        $pm->start(sub {
+    until ($self->pm->signal_received eq 'TERM') {
+        $self->pm->start(sub {
             srand();
             Workman::Server::Worker->new(
                 id     => $id++,
@@ -54,7 +50,9 @@ sub run {
             )->run;
         });
     }
-    $pm->wait_all_children();
+
+    $self->set_signal_handler();
+    $self->pm->wait_all_children();
 
     # TODO: use logger
     warn "[$$] SHUTDOWN";
@@ -63,6 +61,7 @@ sub run {
 sub set_signal_handler {
     my $self = shift;
 
+    # to shutdown
     for my $sig (qw/INT TERM/) {
         $self->{_signal_handler}->{$sig} = set_sig_handler($sig, sub {
             warn "[$$] SIG$sig RECEIVED";
@@ -73,6 +72,7 @@ sub set_signal_handler {
         });
     }
 
+    # to restart
     for my $sig (qw/HUP/) {
         $self->{_signal_handler}->{$sig} = set_sig_handler($sig, sub {
             warn "[$$] SIG$sig RECEIVED";
