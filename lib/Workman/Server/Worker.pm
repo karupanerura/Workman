@@ -94,7 +94,14 @@ sub dequeue_loop {
     my $count = $self->server->profile->max_reqs_par_child;
     my $queue = $self->server->profile->queue;
     until ($self->harakiri) {
-        my $job = $queue->dequeue();
+        my $job = try {
+            $queue->dequeue();
+        }
+        catch {
+            warn $_;
+            undef;
+        };
+
         $self->work_job($job) if defined $job;
         $self->harakiri(1)    if --$count == 0;
     }
