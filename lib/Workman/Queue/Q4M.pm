@@ -10,6 +10,8 @@ use Class::Accessor::Lite
 
 use DBIx::Sunny;
 use SQL::Maker;
+use Workman::Job;
+use Workman::Request;
 
 sub _dbh {
     my $self = shift;
