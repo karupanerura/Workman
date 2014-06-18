@@ -7,7 +7,8 @@ use_ok $_ for qw(
     Workman::Client
     Workman::Request
     Workman::Server
-    Workman::Server::Worker
+    Workman::Server::Worker::Job
+    Workman::Server::Worker::Admin
     Workman::Server::Profile
     Workman::Server::Exception
     Workman::Server::Exception::TaskNotFound

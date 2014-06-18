@@ -5,33 +5,27 @@ use utf8;
 
 use Time::HiRes;
 use Parallel::Prefork;
-use POSIX qw/SA_RESTART/;
-use Sys::SigAction qw/set_sig_handler/;
+use Parallel::Scoreboard;
+use File::Spec;
+use List::Util qw/sum/;
+use List::MoreUtils qw/any/;
+use Proc::Guard;
 
-use Workman::Server::Worker;
+use Workman::Server::Worker::Job;
+use Workman::Server::Worker::Admin;
 
-use Class::Accessor::Lite new => 1, ro => [qw/profile/];
+use Class::Accessor::Lite
+    new => 1,
+    ro  => [qw/profile name/];
 
-sub pm {
+sub scoreboard {
     my $self = shift;
-    return $self->{_pm} ||= Parallel::Prefork->new({
-        max_workers => $self->profile->max_workers,
-        after_fork  => sub {
-            my (undef, $pid) = @_;
-            # TODO: logging
-            warn "[$pid] START WORKER";
-        },
-        on_child_reap => sub {
-            my (undef, $pid) = @_;
-            # TODO: logging
-            warn "[$pid] FINISH WORKER";
-        },
-        trap_signals => {
-            INT  => 'TERM', # graceful shutdown (timeout: infiniy)
-            TERM => 'TERM', # graceful shutdown
-            HUP  => 'HUP',  # graceful restart
-        },
-    });
+    return $self->{_scoreboard} ||= Parallel::Scoreboard->new(
+        base_dir => File::Spec->catfile(
+            File::Spec->tmpdir,
+            $self->name || 'workman-server',
+        )
+    );
 }
 
 sub run {
@@ -39,83 +33,88 @@ sub run {
 
     # TODO: use logger
     warn "[$$] START";
+    my $pm = $self->_create_parallel_prefork();
 
-    my $id = 0;
-    until ($self->pm->signal_received eq 'TERM') {
-        $self->pm->start(sub {
-            srand();
-            Workman::Server::Worker->new(
-                id     => $id++,
-                server => $self,
-            )->run;
-        });
+    my $wait_admin_workers = $self->_create_admin_workers();
+    my $wait_job_workers   = $self->_create_job_workers($pm);
+
+    # wait ...
+    # TODO: use logger
+    $wait_job_workers->();
+    $wait_admin_workers->();
+    my $timeout = $self->_wait_all_children_with_timeout($pm);
+    if ($timeout) {
+        # TODO: use logger
+        warn "[$$] give up graceful shutdown. force shutdown!!";
+        $pm->signal_all_children('ABRT'); # force kill children.
     }
 
-    $self->set_signal_handler();
-    $self->pm->wait_all_children();
-
-    # TODO: use logger
     warn "[$$] SHUTDOWN";
 }
 
-sub set_signal_handler {
+sub _create_parallel_prefork {
     my $self = shift;
-
-    # to shutdown
-    for my $sig (qw/INT TERM/) {
-        $self->{_signal_handler}->{$sig} = set_sig_handler($sig, sub {
-            warn "[$$] SIG$sig RECEIVED";
-            $self->pm->signal_received($self->pm->trap_signals->{$sig}) if exists $self->pm->trap_signals->{$sig};
-            $self->shutdown($sig);
-        }, {
-            flags => SA_RESTART
-        });
-    }
-
-    # to restart
-    for my $sig (qw/HUP/) {
-        $self->{_signal_handler}->{$sig} = set_sig_handler($sig, sub {
-            warn "[$$] SIG$sig RECEIVED";
-            $self->pm->signal_received($self->pm->trap_signals->{$sig}) if exists $self->pm->trap_signals->{$sig};
-            $self->kill_all_children();
-        }, {
-            flags => SA_RESTART
-        });
-    }
+    return Parallel::Prefork->new({
+        max_workers => $self->profile->max_workers(),
+        after_fork  => sub {
+            my (undef, $pid) = @_;
+            # TODO: logging
+            warn "[$pid] START JOB WORKER";
+        },
+        on_child_reap => sub {
+            my (undef, $pid) = @_;
+            # TODO: logging
+            warn "[$pid] FINISH JOB WORKER";
+        },
+        trap_signals => {
+            INT  => 'TERM', # graceful shutdown
+            TERM => 'TERM', # graceful shutdown
+            HUP  => 'HUP',  # graceful restart
+        },
+    });
 }
 
-sub shutdown :method {
-    my ($self, $sig) = @_;
+sub _create_admin_workers {
+    my $self = shift;
 
-    $self->kill_all_children();
+    my $worker = Workman::Server::Worker::Admin->new(server => $self);
+    my $guard  = Proc::Guard->new(code => sub { $worker->run });
+
+    my $pid = $guard->pid;
+    warn "[$pid] START ADMIN WORKER";
+    return sub {
+        $guard->stop;
+        warn "[$pid] STOP ADMIN WORKER";
+    };
+}
+
+sub _create_job_workers {
+    my ($self, $pm) = @_;
+
+    my $worker = Workman::Server::Worker::Job->new(server => $self);
+    $pm->start(sub { $worker->run() }) while $pm->signal_received ne 'INT' and $pm->signal_received ne 'TERM';
+    return sub { $pm->wait_all_children() };
+}
+
+sub _wait_all_children_with_timeout {
+    my ($self, $pm) = @_;
 
     my $start_at = [Time::HiRes::gettimeofday];
     while (Time::HiRes::tv_interval($start_at) < $self->profile->graceful_shutdown_timeout) {
         # FIXME: non-blocking wait_all_children
         #        TODO: pull-req to Parallel::Prefork
-        if (my ($pid) = $self->pm->_wait(0)) {
-            if (delete $self->pm->{worker_pids}->{$pid}) {
-                $self->pm->_on_child_reap($pid, $?);
+        if (my ($pid) = $pm->_wait(0)) {
+            if (delete $pm->{worker_pids}->{$pid}) {
+                $pm->_on_child_reap($pid, $?);
             }
         }
-        last unless $self->pm->num_workers;
+        last unless $pm->num_workers;
     }
     continue {
         Time::HiRes::sleep $self->profile->wait_interval;
     }
 
-    if ($self->pm->num_workers) {
-        # TODO: use logger
-        warn "[$$] give up graceful shutdown. force shutdown!!";
-        $self->pm->signal_all_children('ABRT'); # force kill children.
-    }
-}
-
-sub kill_all_children {
-    my $self = shift;
-
-    # TODO: use logger
-    $self->pm->signal_all_children('TERM');
+    return $pm->num_workers ? 1 : 0;
 }
 
 1;

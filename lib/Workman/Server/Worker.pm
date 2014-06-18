@@ -4,36 +4,40 @@ use warnings;
 use utf8;
 
 use Carp qw/croak/;
-use Try::Tiny;
 use POSIX qw/SA_RESTART/;
 use Sys::SigAction qw/set_sig_handler/;
-
-use Workman::Server::Exception::TaskNotFound;
+use Class::Data::Lazy qw/type/;
+use JSON::XS;
 
 use Class::Accessor::Lite
     new => 1,
-    ro => [qw/id server/],
-    rw => [qw/harakiri current_job/];
+    ro => [qw/server/];
 
 sub run {
     my $self = shift;
-    $self->harakiri(0);
     $self->set_signal_handler();
 
-    local $0 = "$0 WORKER";
-    $self->server->profile->apply($self);
-    $self->server->profile->queue->register_tasks( $self->get_all_tasks );
-    $self->dequeue_loop();
+    local $0 = sprintf '%s WORKER %s', $0, $self->type;
+    $self->_run();
 }
+
+sub _build_type {
+    my $invocant = shift;
+    my $class    = ref $invocant || $invocant;
+    (my $type = $class) =~ s/^Workman::Server::Worker:://;
+    return $type;
+}
+
+sub _run { die "this is abstract method." }
 
 sub set_signal_handler {
     my $self = shift;
 
     # to ignore signal propagation
-    $SIG{HUP} = $SIG{INT} = 'IGNORE';
+    $SIG{INT} = 'IGNORE';
 
     # to shutdown
-    for my $sig (qw/TERM/) {
+    for my $sig (qw/TERM HUP/) {
         $self->{_signal_handler}->{$sig} = set_sig_handler($sig, sub {
             warn "[$$] SIG$sig RECEIVED";
             $self->shutdown($sig);
@@ -55,105 +59,28 @@ sub set_signal_handler {
 
 sub shutdown :method {
     my ($self, $sig) = @_;
-
-    ## TODO: logging
-    $self->harakiri(1);
-    $self->server->profile->queue->dequeue_abort();
+    die "signal recieved: SIG$sig";
 }
 
 sub abort {
     my ($self, $sig) = @_;
-
-    ## TODO: logging
     $self->shutdown($sig);
-    die "force killed." if $self->current_job;
 }
 
-sub register_task {
-    my ($self, $task) = @_;
-    my $name = $task->name;
-    croak "task already registerd. name: $name" if exists $self->{_task}->{$name};
-    $self->{_task}->{$name} = $task;
-    return $self;
-}
-
-sub get_task {
-    my ($self, $job) = @_;
-
-    my $name = $job->name;
-    return unless exists $self->{_task}->{$name};
-    return $self->{_task}->{$name};
-}
-
-sub get_all_tasks {
+sub json {
     my $self = shift;
-    return values %{ $self->{_task} };
+    return $self->{json} ||= JSON::XS->new->utf8;
 }
 
-sub dequeue_loop {
-    my $self = shift;
-
-    my $count = $self->server->profile->max_reqs_par_child;
-    my $queue = $self->server->profile->queue;
-    until ($self->harakiri) {
-        my $job = try {
-            $queue->dequeue();
-        }
-        catch {
-            warn $_;
-            undef;
-        };
-
-        $self->work_job($job) if defined $job;
-        $self->harakiri(1)    if --$count == 0;
-    }
-}
-
-sub work_job {
-    my ($self, $job) = @_;
-    try {
-        warn "[$$] START JOB: ", $job->name;
-        my $task = $self->get_task($job) or Workman::Server::Exception::TaskNotFound->throw;
-        $self->current_job($job);
-        my $result = $task->run($job->args);
-        $job->done($result);
-    }
-    catch {
-        warn "[$$] ABORT JOB: ", $job->name, " Error: $_";
-        $job->abort($_);
-    }
-    finally {
-        warn "[$$] FINISH JOB: ", $job->name;
-        $self->current_job(undef);
-    };
+sub update_scoreboard_status {
+    my ($self, $status, $data) = @_;
+    $self->server->scoreboard->update(
+        $self->json->encode({
+            %$data,
+            status => $status,
+        })
+    );
 }
 
 1;
 __END__
-
-=encoding utf-8
-
-=head1 NAME
-
-Workman::Server::Worker - job-queue worker runner
-
-=head1 SYNOPSIS
-
-
-=head1 DESCRIPTION
-
-Workman is ...
-
-=head1 LICENSE
-
-Copyright (C) karupanerura.
-
-This library is free software; you can redistribute it and/or modify
-it under the same terms as Perl itself.
-
-=head1 AUTHOR
-
-karupanerura E<lt>karupa@cpan.orgE<gt>
-
-=cut
-
