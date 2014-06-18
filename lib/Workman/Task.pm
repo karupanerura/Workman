@@ -3,13 +3,14 @@ use strict;
 use warnings;
 use utf8;
 
-use Class::Accessor::Lite ro  => [qw/name code/];
+use Class::Accessor::Lite ro => [qw/name code count/];
 
 sub new {
     my ($class, $name, $code) = @_;
     return bless +{
-        name => $name,
-        code => $code,
+        name  => $name,
+        code  => $code,
+        count => 0,
     } => $class;
 }
 

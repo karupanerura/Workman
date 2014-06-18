@@ -19,7 +19,7 @@ sub _json {
 }
 
 sub register_tasks {
-    my $self = shift;
+    my ($self, $task_set) = @_;
 
     if (exists $self->{gearman}) {
         warn "[$$] workers already registerd to gearmand.";
@@ -33,8 +33,7 @@ sub register_tasks {
         ) : (),
     );
 
-    for my $task (@_) {
-        my $name = $task->name;
+    for my $name ($task_set->get_all_task_names) {
         $gearman->register_function($name => sub {
             my $job  = shift;
             my $args = $self->_inflate($job->workload);

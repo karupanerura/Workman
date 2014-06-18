@@ -3,6 +3,8 @@ use strict;
 use warnings;
 use utf8;
 
+use Workman::Task::Set;
+
 use Class::Accessor::Lite
     ro  => [
         qw/
@@ -30,16 +32,17 @@ sub new {
     } => $class;
 }
 
-sub register {
-    my ($self, $task_register) = @_;
-    $self->{_task_register} = $task_register;
+sub set_task_loader {
+    my ($self, $task_loader) = @_;
+    $self->{_task_loader} = $task_loader;
     return $self;
 }
 
-sub apply {
-    my ($self, $worker) = @_;
-    $self->{_task_register}->($worker);
-    return $worker;
+sub load_task {
+    my $self = shift;
+    my $set = Workman::Task::Set->new;
+    $self->{_task_loader}->($set);
+    return $set;
 }
 
 1;

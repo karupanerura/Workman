@@ -5,7 +5,7 @@ use utf8;
 
 use parent qw/Workman::Server::Worker/;
 
-use Class::Accessor::Lite rw => [qw/harakiri current_job/];
+use Class::Accessor::Lite rw => [qw/harakiri current_job task_set/];
 
 use Carp qw/croak/;
 use Try::Tiny;
@@ -16,8 +16,8 @@ sub _run {
     my $self = shift;
     $self->harakiri(0);
     $self->update_scoreboard_status_starting();
-    $self->server->profile->apply($self);
-    $self->server->profile->queue->register_tasks( $self->get_all_tasks );
+    $self->task_set( $self->server->profile->load_task() );
+    $self->server->profile->queue->register_tasks( $self->task_set );
     $self->dequeue_loop();
     $self->update_scoreboard_status_shutdown();
 }
@@ -40,26 +40,6 @@ sub abort {
     die "force killed." if $self->current_job;
 }
 
-sub register_task {
-    my ($self, $task) = @_;
-    my $name = $task->name;
-    croak "task already registerd. name: $name" if exists $self->{_task}->{$name};
-    $self->{_task}->{$name} = $task;
-    return $self;
-}
-
-sub get_task {
-    my ($self, $job) = @_;
-
-    my $name = $job->name;
-    return unless exists $self->{_task}->{$name};
-    return $self->{_task}->{$name};
-}
-
-sub get_all_tasks {
-    my $self = shift;
-    return values %{ $self->{_task} };
-}
 
 sub dequeue_loop {
     my $self = shift;
@@ -84,7 +64,7 @@ sub dequeue_loop {
 sub work_job {
     my ($self, $job) = @_;
     try {
-        my $task = $self->get_task($job) or Workman::Server::Exception::TaskNotFound->throw;
+        my $task = $self->task_set->get_task($job->name) or Workman::Server::Exception::TaskNotFound->throw;
         $self->update_scoreboard_status_running($job);
         $self->current_job($job);
         my $result = $task->run($job->args);

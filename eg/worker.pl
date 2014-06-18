@@ -11,17 +11,17 @@ use Data::Dumper;
 
 my $queue   = Workman::Queue::Gearman->new(job_servers => ['127.0.0.1:7003']);
 my $profile = Workman::Server::Profile->new(max_workers => 10, queue => $queue);
-$profile->register(sub {
-    my $worker = shift;
+$profile->set_task_loader(sub {
+    my $set = shift;
 
     warn "[$$] register tasks...";
     my $task = Workman::Task->new(Echo => sub {
         my $args = shift;
         warn Dumper $args;
-        die "oops!!";
+        # die "oops!!";
         return $args;
     });
-    $worker->register_task($task);
+    $set->add($task);
 });
 
 # start

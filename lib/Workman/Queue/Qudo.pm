@@ -17,8 +17,8 @@ sub new {
 }
 
 sub register_tasks {
-    my $self = shift;
-    $self->qudo->manager->register_abilities(map { $_->name } @_);
+    my ($self, $task_set) = @_;
+    $self->qudo->manager->register_abilities($task_set->get_all_task_names);
 }
 
 sub enqueue {

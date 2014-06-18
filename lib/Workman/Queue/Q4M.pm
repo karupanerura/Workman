@@ -24,8 +24,8 @@ sub _sql_maker {
 }
 
 sub register_tasks {
-    my $self = shift;
-    $self->task_names([map { $_->name } @_]);
+    my ($self, $task_set) = @_;
+    $self->task_names([ $task_set->get_all_task_names ]);
 }
 
 sub enqueue {

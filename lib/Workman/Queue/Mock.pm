@@ -4,15 +4,16 @@ use warnings;
 use utf8;
 
 use parent qw/Workman::Queue/;
-use Class::Accessor::Lite rw => [qw/on_wait on_background on_done on_abort on_dequeue_abort/];
+use Class::Accessor::Lite
+    ro => [qw/task_set/],
+    rw => [qw/on_wait on_background on_done on_abort on_dequeue_abort/];
 
 use Workman::Request;
 use Workman::Job;
 
 sub register_tasks {
-    my $self = shift;
-    my %task = map { $_->name => $_ } @_;
-    $self->{task} = \%task;
+    my ($self, $task_set) = @_;
+    $self->{task_set} = $task_set;
 }
 
 sub enqueue {
