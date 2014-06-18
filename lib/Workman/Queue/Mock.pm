@@ -34,7 +34,7 @@ sub dequeue {
     $self->{dequeue_count} = 0 unless exists $self->{dequeue_count};
     $self->{dequeue_count}++;
 
-    my $job  = pop @{ $self->{queue} } or return;
+    my $job = shift @{ $self->{queue} } or return;
     my ($name, $args) = @$job;
     return Workman::Job->new(
         name     => $name,
