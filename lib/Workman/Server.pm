@@ -55,8 +55,9 @@ sub run {
 sub _create_parallel_prefork {
     my $self = shift;
     return Parallel::Prefork->new({
-        max_workers => $self->profile->max_workers(),
-        after_fork  => sub {
+        max_workers    => $self->profile->max_workers(),
+        spawn_interval => $self->profile->spawn_interval(),
+        after_fork     => sub {
             my (undef, $pid) = @_;
             # TODO: logging
             warn "[$pid] START JOB WORKER";

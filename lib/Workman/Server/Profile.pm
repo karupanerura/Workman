@@ -8,6 +8,7 @@ use Class::Accessor::Lite
         qw/
               queue
               max_workers
+              spawn_interval
               max_reqs_par_child
               graceful_shutdown_timeout
               wait_interval
@@ -20,6 +21,7 @@ sub new {
     my $args  = (@_ == 1 and ref $_[0] eq 'HASH') ? +shift : {@_};
     return bless +{
         max_workers               => 1,
+        spawn_interval            => 0,
         max_reqs_par_child        => 100,
         graceful_shutdown_timeout => 20,
         wait_interval             => 0.1,
