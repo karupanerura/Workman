@@ -11,7 +11,12 @@ use AnyEvent::Gearman::Client;
 use AnyEvent::Gearman::Worker;
 use Workman::Job;
 use Workman::Request;
-use JSON 2 qw/encode_json decode_json/;
+use JSON::XS;
+
+sub _json {
+    my $self = shift;
+    return $self->{_json} ||= JSON::XS->new->utf8;
+}
 
 sub register_tasks {
     my $self = shift;
@@ -119,12 +124,12 @@ sub _recv_job {
 
 sub _inflate {
     my ($self, $workload) = @_;
-    return decode_json($workload);
+    return $self->_json->decode($workload);
 }
 
 sub _deflate {
     my ($self, $args) = @_;
-    return encode_json($args);
+    return $self->_json->encode($args);
 }
 
 1;
