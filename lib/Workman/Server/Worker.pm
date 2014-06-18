@@ -17,7 +17,7 @@ sub run {
     my $self = shift;
     $self->set_signal_handler();
 
-    local $0 = sprintf '%s WORKER %s', $0, $self->type;
+    local $0 = sprintf '%s %s WORKER', $0, uc $self->type;
     $self->_run();
 }
 
