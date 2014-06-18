@@ -19,20 +19,21 @@ Workman - light weight job-queue worker framework
     ########## worker.pl ##########
     use Workman::Server;
     use Workman::Server::Profile;
-    use Workman::Queue::Q4M;
+    use Workman::Queue::Gearman;
     use Workman::Task;
 
-    my $queue   = Workman::Queue::Q4M->new(dsn => [...]);
+    my $queue   = Workman::Queue::Gearman->new(job_servers => [...]);
     my $profile = Workman::Server::Profile->new(max_workers => 10, queue => $queue);
-    $profile->register(sub {
-        my $worker = shift;
+    $profile->set_task_loader(sub {
+        my $set = shift;
 
+        warn "[$$] register tasks...";
         my $task = Workman::Task->new(Echo => sub {
             my $args = shift;
             warn $args->{message};
             return $args;
         });
-        $worker->register_task($task);
+        $set->add($task);
     });
 
     # start
@@ -40,9 +41,9 @@ Workman - light weight job-queue worker framework
 
     ########## client.pl ##########
     use Workman::Client;
-    use Workman::Queue::Q4M;
+    use Workman::Queue::Gearman;
 
-    my $queue  = Workman::Queue::Q4M->new(dsn => [...]);
+    my $queue  = Workman::Queue::Gearman->new(job_servers => [...]);
     my $client = Workman::Client->new(queue => $queue);
 
     my $job    = $client->enqueue(Echo => { message => 'hello!!' });

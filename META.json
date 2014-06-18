@@ -45,9 +45,25 @@
       },
       "runtime" : {
          "requires" : {
+            "AnyEvent" : "0",
+            "AnyEvent::Gearman::Client" : "0",
+            "AnyEvent::Gearman::Worker" : "0",
             "Class::Accessor::Lite" : "0",
+            "Class::Data::Lazy" : "0",
+            "DBIx::Sunny" : "0",
             "Exception::Tiny" : "0",
+            "JSON::XS" : "0",
+            "List::MoreUtils" : "0",
+            "List::Util" : "0",
+            "Module::Load" : "0",
             "Parallel::Prefork" : "0",
+            "Parallel::Scoreboard" : "0",
+            "Plack::Loader" : "0",
+            "Plack::Request" : "0",
+            "Proc::Guard" : "0",
+            "SQL::Maker" : "0",
+            "Scalar::Util" : "0",
+            "Sys::SigAction" : "0",
             "Time::HiRes" : "0",
             "Try::Tiny" : "0",
             "parent" : "0"
@@ -55,11 +71,24 @@
       },
       "test" : {
          "requires" : {
-            "Test::More" : "0.98"
+            "HTTP::Tiny" : "0",
+            "Test::More" : "0.98",
+            "Test::TCP" : "0"
          }
       }
    },
    "release_status" : "unstable",
+   "resources" : {
+      "bugtracker" : {
+         "web" : "https://github.com/karupanerura/Workman/issues"
+      },
+      "homepage" : "https://github.com/karupanerura/Workman",
+      "repository" : {
+         "type" : "git",
+         "url" : "git://github.com/karupanerura/Workman.git",
+         "web" : "https://github.com/karupanerura/Workman"
+      }
+   },
    "version" : "0.01",
    "x_authority" : "cpan:KARUPA"
 }
