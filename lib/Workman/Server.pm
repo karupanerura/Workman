@@ -78,7 +78,7 @@ sub _create_parallel_prefork {
 sub _create_admin_workers {
     my $self = shift;
 
-    my $worker = Workman::Server::Worker::Admin->new(server => $self);
+    my $worker = Workman::Server::Worker::Admin->new(profile => $self->profile, scoreboard => $self->scoreboard);
     my $guard  = Proc::Guard->new(code => sub { $worker->run });
 
     my $pid = $guard->pid;
@@ -92,7 +92,7 @@ sub _create_admin_workers {
 sub _create_job_workers {
     my ($self, $pm) = @_;
 
-    my $worker = Workman::Server::Worker::Job->new(server => $self);
+    my $worker = Workman::Server::Worker::Job->new(profile => $self->profile, scoreboard => $self->scoreboard);
     $pm->start(sub { $worker->run() }) while $pm->signal_received ne 'INT' and $pm->signal_received ne 'TERM';
     return sub { $pm->wait_all_children() };
 }

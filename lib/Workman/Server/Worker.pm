@@ -11,7 +11,7 @@ use JSON::XS;
 
 use Class::Accessor::Lite
     new => 1,
-    ro => [qw/server/];
+    ro => [qw/profile scoreboard/];
 
 sub run {
     my $self = shift;
@@ -74,7 +74,7 @@ sub json {
 
 sub update_scoreboard_status {
     my ($self, $status, $data) = @_;
-    $self->server->scoreboard->update(
+    $self->scoreboard->update(
         $self->json->encode({
             %$data,
             status => $status,

@@ -22,7 +22,7 @@ sub _create_args {
     my $self = shift;
     return (
         server_software => sprintf('Workman/%s', $Workman::VERSION),
-        port            => $self->server->profile->admin_port, # TODO
+        port            => $self->profile->admin_port, # TODO
     );
 }
 
@@ -56,7 +56,7 @@ sub _action_rpc_scoreboard {
     my ($self, $env) = @_;
 
     my %result;
-    my $stats = $self->server->scoreboard->read_all();
+    my $stats = $self->scoreboard->read_all();
     for my $pid (keys %$stats) {
         $result{$pid} = $self->json->decode($stats->{$pid} || '{}');
     }

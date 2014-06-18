@@ -16,8 +16,8 @@ sub _run {
     my $self = shift;
     $self->harakiri(0);
     $self->update_scoreboard_status_starting();
-    $self->task_set( $self->server->profile->load_task() );
-    $self->server->profile->queue->register_tasks( $self->task_set );
+    $self->task_set( $self->profile->load_task() );
+    $self->profile->queue->register_tasks( $self->task_set );
     $self->dequeue_loop();
     $self->update_scoreboard_status_shutdown();
 }
@@ -28,7 +28,7 @@ sub shutdown :method {
 
     ## TODO: logging
     $self->harakiri(1);
-    $self->server->profile->queue->dequeue_abort();
+    $self->profile->queue->dequeue_abort();
 }
 
 # override
@@ -44,8 +44,8 @@ sub abort {
 sub dequeue_loop {
     my $self = shift;
 
-    my $count = $self->server->profile->max_reqs_par_child;
-    my $queue = $self->server->profile->queue;
+    my $count = $self->profile->max_reqs_par_child;
+    my $queue = $self->profile->queue;
     until ($self->harakiri) {
         my $job = try {
             $self->update_scoreboard_status_waiting();
