@@ -14,7 +14,6 @@ requires 'Parallel::Scoreboard';
 requires 'Plack::Loader';
 requires 'Plack::Request';
 requires 'Proc::Guard';
-requires 'Qudo';
 requires 'SQL::Maker';
 requires 'Scalar::Util';
 requires 'Sys::SigAction';

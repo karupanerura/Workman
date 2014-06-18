@@ -19,7 +19,6 @@ use_ok $_ for qw(
     Workman::Queue
     Workman::Queue::Q4M
     Workman::Queue::Gearman
-    Workman::Queue::Qudo
     Workman::Queue::Mock
 );
 
