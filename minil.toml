@@ -1,4 +1,4 @@
 name = "Workman"
-# badges = ["travis"]
+badges = ["travis", "coveralls"]
 authority="cpan:KARUPA"
 
