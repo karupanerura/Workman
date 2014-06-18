@@ -1,6 +1,6 @@
 use strict;
 use warnings;
-use Test::More tests => 3;
+use Test::More tests => 5;
 
 use Workman::Client;
 use Workman::Queue::Mock;
@@ -18,6 +18,9 @@ my $queue  = Workman::Queue::Mock->new(
     }
 );
 my $client = Workman::Client->new(queue => $queue);
+is $wait,       0, 'should not run wait task yet.';
+is $background, 0, 'should not run background task yet.';
+
 is_deeply $client->enqueue(Foo => { foo => 1, bar => 2 })->wait, {
     msg => 'success'
 }, 'can get result';
