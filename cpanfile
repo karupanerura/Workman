@@ -17,9 +17,7 @@ requires 'Try::Tiny';
 requires 'parent';
 
 on configure => sub {
-    requires 'CPAN::Meta';
-    requires 'CPAN::Meta::Prereqs';
-    requires 'Module::Build';
+    requires 'Module::Build::Tiny', '0.035';
     requires 'perl', '5.008_001';
 };
 
