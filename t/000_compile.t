@@ -17,8 +17,6 @@ use_ok $_ for qw(
     Workman::Server::Exception::TaskNotFound
     Workman::Job
     Workman::Queue
-    Workman::Queue::Q4M
-    Workman::Queue::Gearman
     Workman::Queue::Mock
 );
 
