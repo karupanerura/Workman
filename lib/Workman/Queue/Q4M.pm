@@ -31,7 +31,7 @@ sub register_tasks {
 sub enqueue {
     my ($self, $name, $args) = @_;
     my ($sql, @bind) = $self->_sql_maker->insert($name, $args);
-    $self->dbh->query($sql, @bind);
+    $self->_dbh->query($sql, @bind);
     return Workman::Request->new(
         on_wait => sub {
             warn "[$$] Q4M hasn't support to wait result.";
@@ -47,24 +47,24 @@ sub dequeue {
         my $args = [@{ $self->task_names }];
         push @$args => $self->timeout if defined $self->timeout;
 
-        local $self->dbh->{private_in_queue_wait} = 1;
-        $self->dbh->select_one('SELECT queue_wait(?)', $args);
+        local $self->_dbh->{private_in_queue_wait} = 1;
+        $self->_dbh->select_one('SELECT queue_wait(?)', $args);
     } or return;
 
     my $name = $self->task_names->[$index - 1];
-    my $sql  = sprintf 'SELECT * FROM %s', $self->dbh->quote($name);
-    my $args = $self->dbh->select_row($sql);
+    my $sql  = sprintf 'SELECT * FROM `%s`', $name;
+    my $args = $self->_dbh->select_row($sql);
     return Workman::Job->new(
         name    => $name,
         args    => $args,
         on_done => sub {
             my $result = shift;
             warn "[$$] Q4M hasn't support to send result." if defined $result;
-            $self->dbh->select_one('SELECT queue_end()');
+            $self->_dbh->select_one('SELECT queue_end()');
         },
         on_abort => sub {
             my $e = shift;
-            $self->dbh->select_one('SELECT queue_abort()');
+            $self->_dbh->select_one('SELECT queue_abort()');
         },
     );
 }
