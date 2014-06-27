@@ -36,12 +36,10 @@ sub run {
     my $pm = $self->_create_parallel_prefork();
 
     my $wait_admin_workers = $self->_create_admin_workers();
-    my $wait_job_workers   = $self->_create_job_workers($pm);
+    $self->_create_job_workers($pm);
 
     # wait ...
     # TODO: use logger
-    $wait_job_workers->();
-    $wait_admin_workers->();
     my $timeout = $self->_wait_all_children_with_timeout($pm);
     if ($timeout) {
         # TODO: use logger
@@ -49,6 +47,7 @@ sub run {
         $pm->signal_all_children('ABRT'); # force kill children.
     }
     $pm->wait_all_children();
+    $wait_admin_workers->();
 
     warn "[$$] SHUTDOWN";
 }
