@@ -48,6 +48,7 @@ sub run {
         warn "[$$] give up graceful shutdown. force shutdown!!";
         $pm->signal_all_children('ABRT'); # force kill children.
     }
+    $pm->wait_all_children();
 
     warn "[$$] SHUTDOWN";
 }
@@ -94,7 +95,7 @@ sub _create_job_workers {
 
     my $worker = Workman::Server::Worker::Job->new(profile => $self->profile, scoreboard => $self->scoreboard);
     $pm->start(sub { $worker->run() }) while $pm->signal_received ne 'INT' and $pm->signal_received ne 'TERM';
-    return sub { $pm->wait_all_children() };
+    return sub {};
 }
 
 sub _wait_all_children_with_timeout {
