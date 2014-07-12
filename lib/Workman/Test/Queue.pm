@@ -103,8 +103,6 @@ sub _is_deeply {
 sub check_parallel {
     my $self = shift;
 
-    $self->t->plan(tests => 100);
-
     my ($fh, $filename) = tempfile();
     syswrite $fh, '0', 1;
 
@@ -182,7 +180,7 @@ sub check_parallel {
             flock $fh, LOCK_UN;
             if ($c == 100) {
                 undef @guard;
-                $self->t->note('complete');
+                $self->t->ok(1, 'complete');
                 last;
             }
             sleep 1;
