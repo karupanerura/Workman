@@ -3,6 +3,7 @@ use warnings;
 use Test::More;
 
 use File::Spec;
+use Try::Tiny;
 
 use Workman::Task;
 use Workman::Queue::Mock;
@@ -77,7 +78,22 @@ subtest 'call bar' => sub {
 
 subtest 'call not' => sub {
     local $args;
-    $worker->run;
+
+    my $is_timeout = 0;
+    try {
+        local $SIG{ALRM} = sub {
+            $is_timeout = 1;
+            die "timeout";
+        };
+        alarm 3;
+        $worker->run;
+        alarm 0;
+    }
+    catch {
+        note 'timeout' if $is_timeout;
+        die $_ unless $is_timeout;
+    };
+
     is_deeply $args, undef, 'should not set args.';
     is $foo_task->count, 1, 'should keep Foo call count.';
     is $bar_task->count, 1, 'should keep Bar call count.';

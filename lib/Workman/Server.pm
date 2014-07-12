@@ -4,7 +4,7 @@ use warnings;
 use utf8;
 
 use Time::HiRes;
-use Parallel::Prefork;
+use Parallel::Prefork 0.17;
 use Parallel::Scoreboard;
 use File::Spec;
 use List::Util qw/sum/;
@@ -36,19 +36,12 @@ sub run {
     my $pm = $self->_create_parallel_prefork();
 
     my $wait_admin_workers = $self->_create_admin_workers();
-    $self->_create_job_workers($pm);
+    my $wait_job_workers   = $self->_create_job_workers($pm);
 
-    # wait ...
-    # TODO: use logger
-    my $timeout = $self->_wait_all_children_with_timeout($pm);
-    if ($timeout) {
-        # TODO: use logger
-        warn "[$$] give up graceful shutdown. force shutdown!!";
-        $pm->signal_all_children('ABRT'); # force kill children.
-    }
-    $pm->wait_all_children();
+    $wait_job_workers->();
     $wait_admin_workers->();
 
+    # TODO: use logger
     warn "[$$] SHUTDOWN";
 }
 
@@ -94,28 +87,15 @@ sub _create_job_workers {
 
     my $worker = Workman::Server::Worker::Job->new(profile => $self->profile, scoreboard => $self->scoreboard);
     $pm->start(sub { $worker->run() }) while $pm->signal_received ne 'INT' and $pm->signal_received ne 'TERM';
-    return sub {};
-}
-
-sub _wait_all_children_with_timeout {
-    my ($self, $pm) = @_;
-
-    my $start_at = [Time::HiRes::gettimeofday];
-    while (Time::HiRes::tv_interval($start_at) < $self->profile->graceful_shutdown_timeout) {
-        # FIXME: non-blocking wait_all_children
-        #        TODO: pull-req to Parallel::Prefork
-        if (my ($pid) = $pm->_wait(0)) {
-            if (delete $pm->{worker_pids}->{$pid}) {
-                $pm->_on_child_reap($pid, $?);
-            }
+    return sub {
+        my $is_timeout = $pm->wait_all_children($self->profile->graceful_shutdown_timeout);
+        if ($is_timeout) {
+            # TODO: use logger
+            warn "[$$] give up graceful shutdown. force shutdown!!";
+            $pm->signal_all_children('ABRT'); # force kill children.
         }
-        last unless $pm->num_workers;
-    }
-    continue {
-        Time::HiRes::sleep $self->profile->wait_interval;
-    }
-
-    return $pm->num_workers ? 1 : 0;
+        $pm->wait_all_children();
+    };
 }
 
 1;
