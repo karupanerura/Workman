@@ -18,9 +18,10 @@ my $worker = Test::TCP->new(
         my $port    = shift;
         my $queue   = Workman::Queue::File->new(file => $file);
         my $profile = Workman::Server::Profile->new(
-            queue       => $queue,
-            max_workers => 3,
-            admin_port  => $port,
+            queue            => $queue,
+            max_workers      => 3,
+            admin_port       => $port,
+            dequeue_interval => 0.1,
         );
 
         $profile->set_task_loader(sub {
@@ -48,10 +49,13 @@ my $pid = $worker->pid;
 my $queue = Workman::Queue::File->new(file => $file);
 $queue->enqueue(Foo => { this => { is => 'foo args' } });
 
-my $id = $queue->enqueue(Bar => { this => { is => 'bar args' } })->wait->{id};
+my $id1 = $queue->enqueue(Bar => { this => { is => 'bar args' } })->wait->{id};
+note "id: $id1";
 
 kill SIGHUP, $pid;
-isnt $queue->enqueue(Bar => { this => { is => 'bar args' } })->wait->{id}, $id, 'restart ok';
+sleep 3;
+my $id2 = $queue->enqueue(Bar => { this => { is => 'bar args' } })->wait->{id};
+isnt $id2, $id1, 'restart ok';
 
 $worker->stop;
 ok !kill(0, $pid), 'shutdown ok';

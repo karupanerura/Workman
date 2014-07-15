@@ -3,18 +3,14 @@ use warnings;
 use utf8;
 
 use Workman::Client;
-use Workman::Queue::Gearman;
+use Workman::Queue::File;
 use Try::Tiny;
 use Data::Dumper;
 
-my $queue  = Workman::Queue::Gearman->new(job_servers => ['127.0.0.1:7003']);
+my $file = shift @ARGV or die "Usage: $0 [queue-file]";
+warn "[Workman::Queue::File] file: $file";
+
+my $queue  = Workman::Queue::File->new(file => $file);
 my $client = Workman::Client->new(queue => $queue);
 
-my $request = $client->enqueue(Echo => { message => 'hello!!' });
-try {
-    my $result = $request->wait;
-    warn Dumper $result;
-}
-catch {
-    warn "e: $_";
-};
+$client->enqueue_background(Echo => { msg => 'hello' }) for 1..10000;

@@ -4,18 +4,18 @@ use warnings;
 use utf8;
 
 use Carp qw/croak/;
-use POSIX qw/SA_RESTART/;
-use Sys::SigAction qw/set_sig_handler/;
 use Class::Data::Lazy qw/type/;
 use JSON::XS;
+use Workman::Server::SignalHandler;
+use Workman::Server::Util;
 
 use Class::Accessor::Lite
     new => 1,
     ro => [qw/profile scoreboard/];
 
 sub run {
-    my $self = shift;
-    $self->set_signal_handler();
+    my $self    = shift;
+    local $Workman::Server::Util::SIGNAL_HANDLER = $self->set_signal_handler();
 
     local $0 = sprintf '%s %s WORKER', $0, uc $self->type;
     $self->_run();
@@ -34,27 +34,13 @@ sub set_signal_handler {
     my $self = shift;
 
     # to ignore signal propagation
-    $SIG{INT} = 'IGNORE';
+    $SIG{$_} = 'IGNORE' for qw/INT/;
 
-    # to shutdown
-    for my $sig (qw/TERM HUP/) {
-        $self->{_signal_handler}->{$sig} = set_sig_handler($sig, sub {
-            warn "[$$] SIG$sig RECEIVED";
-            $self->shutdown($sig);
-        }, {
-            flags => SA_RESTART
-        });
-    }
+    my $handler = Workman::Server::SignalHandler->new;
+    $handler->register($_ => sub { $self->shutdown($_) }) for qw/TERM HUP/;
+    $handler->register($_ => sub { $self->abort($_)    }) for qw/ABRT/;
 
-    # to force shutdown
-    for my $sig (qw/ABRT/) {
-        $self->{_signal_handler}->{$sig} = set_sig_handler($sig, sub {
-            warn "[$$] SIG$sig RECEIVED";
-            $self->abort($sig);
-        }, {
-            flags => SA_RESTART
-        });
-    }
+    return $handler;
 }
 
 sub shutdown :method {

@@ -6,7 +6,7 @@ use utf8;
 use Test::Builder;
 use Test::SharedFork 0.28;
 use Proc::Guard ();
-use Sys::SigAction qw/set_sig_handler/;
+use Sys::SigAction qw/set_sig_handler timeout_call/;
 use POSIX qw/SA_RESTART/;
 use Time::HiRes;
 use Workman::Task;
@@ -166,13 +166,7 @@ sub check_parallel {
         });
     }
 
-    my $is_timeout = 0;
-    try {
-        local $SIG{ALRM} = sub {
-            $is_timeout = 1;
-            die "timeout";
-        };
-        alarm 20;
+    my $is_timeout = timeout_call 30 => sub {
         while (1) {
             flock $fh, LOCK_EX;
             seek $fh, 0, 0;
@@ -185,12 +179,8 @@ sub check_parallel {
             }
             sleep 1;
         }
-        alarm 0;
-    }
-    catch {
-        $self->t->ok(0, 'timeout') if $is_timeout;
-        die $_ unless $is_timeout;
     };
+    $self->t->ok(0, 'timeout') if $is_timeout;
 }
 
 1;

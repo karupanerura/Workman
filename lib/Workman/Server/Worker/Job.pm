@@ -9,9 +9,9 @@ use Class::Accessor::Lite rw => [qw/harakiri current_job task_set/];
 
 use Carp qw/croak/;
 use Try::Tiny;
-use Time::HiRes;
 
 use Workman::Server::Exception::TaskNotFound;
+use Workman::Server::Util qw/safe_sleep/;
 
 sub _run {
     my $self = shift;
@@ -45,12 +45,14 @@ sub abort {
 sub dequeue_loop {
     my $self = shift;
 
+    my $dequeue_interval = $self->profile->dequeue_interval;
+
     my $count = $self->profile->max_reqs_par_child;
     my $queue = $self->profile->queue;
     until ($self->harakiri) {
         my $job = try {
             $self->update_scoreboard_status_waiting();
-            $queue->dequeue()
+            $queue->dequeue();
         }
         catch {
             warn $_;
@@ -61,8 +63,8 @@ sub dequeue_loop {
             $self->work_job($job);
             $self->harakiri(1) if --$count == 0;
         }
-        else {
-            Time::HiRes::sleep 0.01;
+        elsif ($dequeue_interval) {
+            safe_sleep $dequeue_interval;
         }
     }
 }

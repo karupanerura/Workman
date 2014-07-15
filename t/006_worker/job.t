@@ -10,6 +10,7 @@ use Workman::Queue::Mock;
 use Workman::Server::Profile;
 use Workman::Server::Worker::Job;
 use Parallel::Scoreboard;
+use Sys::SigAction qw/timeout_call/;
 
 my $queue = do {
     my ($result, $e);
@@ -19,7 +20,7 @@ my $queue = do {
         on_wait  => sub { $result },
     );
 };
-my $profile    = Workman::Server::Profile->new(queue => $queue);
+my $profile    = Workman::Server::Profile->new(queue => $queue, dequeue_interval => 1);
 my $scoreboard = Parallel::Scoreboard->new(
     base_dir => File::Spec->catfile(
         File::Spec->tmpdir,
@@ -79,20 +80,10 @@ subtest 'call bar' => sub {
 subtest 'call not' => sub {
     local $args;
 
-    my $is_timeout = 0;
-    try {
-        local $SIG{ALRM} = sub {
-            $is_timeout = 1;
-            die "timeout";
-        };
-        alarm 3;
+    my $is_timeout = timeout_call 3 => sub {
         $worker->run;
-        alarm 0;
-    }
-    catch {
-        note 'timeout' if $is_timeout;
-        die $_ unless $is_timeout;
     };
+    note 'timeout' if $is_timeout;
 
     is_deeply $args, undef, 'should not set args.';
     is $foo_task->count, 1, 'should keep Foo call count.';

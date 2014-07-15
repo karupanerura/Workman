@@ -13,7 +13,7 @@ use Class::Accessor::Lite
               spawn_interval
               max_reqs_par_child
               graceful_shutdown_timeout
-              wait_interval
+              dequeue_interval
               admin_port
         /
     ];
@@ -26,7 +26,7 @@ sub new {
         spawn_interval            => 0,
         max_reqs_par_child        => 100,
         graceful_shutdown_timeout => 20,
-        wait_interval             => 0.1,
+        dequeue_interval          => 0,
         admin_port                => 8989,
         %$args,
     } => $class;

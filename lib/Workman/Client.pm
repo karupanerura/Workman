@@ -5,9 +5,33 @@ use utf8;
 
 use Class::Accessor::Lite new => 1, ro => [qw/queue/];
 
+use Try::Tiny;
+
 sub enqueue {
+    my ($self, $name, $args, $opt) = @_;
+    $opt ||= {};
+    return $self->queue->enqueue($name, $args);
+}
+
+sub enqueue_background {
     my $self = shift;
-    return $self->queue->enqueue(@_);
+    $self->enqueue(@_);
+    return;
+}
+
+sub enqueue_with_wait {
+    my ($self, $name, $args, $opt) = @_;
+    $opt ||= {};
+    if (exists $opt->{on_abort}) {
+	my $on_abort = delete $opt->{on_abort};
+	return try {
+            $self->enqueue_sync($name, $args, $opt);
+	}
+	catch {
+            $on_abort->($_);
+	};
+    }
+    return $self->enqueue($name, $args, $opt)->wait;
 }
 
 1;
@@ -21,6 +45,7 @@ Workman::Client - job-queue worker client
 
 =head1 SYNOPSIS
 
+     use Workman::Client;
 
 =head1 DESCRIPTION
 
