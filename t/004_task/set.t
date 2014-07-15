@@ -20,9 +20,9 @@ is $set->get_task('Bar'), $bar_task, '$set->get_task should return same task.';
 
 subtest 'when passed already registerd named task' => sub {
     my ($line, $file) = (__LINE__, __FILE__); is eval { $set->add_task(Workman::Task->new(Foo => sub {})); 1 }, undef
-        => '$set->add_task should croak.';
+        , '$set->add_task should croak.';
     is $@, "task already registerd. name: Foo at $file line $line.$/"
-        => 'error message is valid.';
+        , 'error message is valid.';
     is $set->get_task('Foo'), $foo_task, 'should not broke instance.';
 };
 
