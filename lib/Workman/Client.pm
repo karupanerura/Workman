@@ -25,7 +25,7 @@ sub enqueue_with_wait {
     if (exists $opt->{on_abort}) {
 	my $on_abort = delete $opt->{on_abort};
 	return try {
-            $self->enqueue_sync($name, $args, $opt);
+            $self->enqueue_with_wait($name, $args, $opt);
 	}
 	catch {
             $on_abort->($_);
