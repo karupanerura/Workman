@@ -54,7 +54,7 @@ sub run {
 
     for my $category ($self->plans) {
         my $method = sprintf 'check_%s', $category;
-        $self->t->subtest("check $category" => sub { $self->$method() });
+        $self->$method();
     }
 }
 
