@@ -5,7 +5,7 @@ use utf8;
 
 use parent qw/Workman::Server::Worker/;
 
-use Class::Accessor::Lite rw => [qw/harakiri current_job task_set/];
+use Class::Accessor::Lite rw => [qw/stat harakiri current_job task_set/];
 
 use Carp qw/croak/;
 use Try::Tiny;
@@ -15,6 +15,10 @@ use Workman::Server::Util qw/safe_sleep/;
 
 sub _run {
     my $self = shift;
+    $self->stat(+{
+        abort => 0,
+        done  => 0,
+    });
     $self->harakiri(0);
     $self->update_scoreboard_status_starting();
     $self->task_set( $self->profile->load_task() );
@@ -77,8 +81,10 @@ sub work_job {
         $self->current_job($job);
         my $result = $task->run($job->args);
         $job->done($result);
+        $self->stat->{done}++;
     }
     catch {
+        $self->stat->{abort}++;
         $self->update_scoreboard_status_aborting($job, $_);
         $job->abort($_);
     }
@@ -90,18 +96,23 @@ sub work_job {
 
 sub update_scoreboard_status_starting {
     my $self = shift;
-    $self->update_scoreboard_status(starting => {});
+    $self->update_scoreboard_status(starting => {
+        stat => $self->stat,
+    });
 }
 
 sub update_scoreboard_status_waiting {
     my $self = shift;
-    $self->update_scoreboard_status(waiting => {});
+    $self->update_scoreboard_status(waiting => {
+        stat => $self->stat,
+    });
 }
 
 sub update_scoreboard_status_running {
     my ($self, $job) = @_;
     warn "[$$] START JOB: ", $job->name;
     $self->update_scoreboard_status(running => {
+        stat => $self->stat,
         job => +{
             name => $job->name,
             args => $job->args,
@@ -113,6 +124,7 @@ sub update_scoreboard_status_aborting {
     my ($self, $job, $e) = @_;
     warn "[$$] ABORT JOB: ", $job->name, " Error: $e";
     $self->update_scoreboard_status(aborting => {
+        stat => $self->stat,
         job => +{
             name => $job->name,
             args => $job->args,
@@ -124,7 +136,8 @@ sub update_scoreboard_status_finishing {
     my ($self, $job) = @_;
     warn "[$$] FINISH JOB: ", $job->name;
     $self->update_scoreboard_status(finishing => {
-        job => {
+        stat => $self->stat,
+        job  => {
             name => $job->name,
             args => $job->args,
         }
@@ -133,7 +146,9 @@ sub update_scoreboard_status_finishing {
 
 sub update_scoreboard_status_shutdown {
     my $self = shift;
-    $self->update_scoreboard_status(shutdown => {});
+    $self->update_scoreboard_status(shutdown => {
+        stat => $self->stat,
+    });
 }
 
 1;
