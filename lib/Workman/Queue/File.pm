@@ -11,6 +11,7 @@ use Fcntl qw/:flock/;
 use POSIX qw/mkfifo/;
 use Workman::Request;
 use Workman::Job;
+use Workman::Server::Util qw/safe_sleep/;
 use JSON::XS;
 use File::Spec;
 use File::Basename qw/dirname/;
@@ -42,10 +43,13 @@ sub _read_queue {
     open my $fh, '+<', $file or return;
     flock $fh, LOCK_EX;
     my @msg = <$fh>;
-    truncate $fh, 0;
+    my $msg = shift @msg;
+    seek $fh, 0, 0;
+    print $fh $_ for @msg;
+    truncate $fh, tell $fh;
     flock $fh, LOCK_UN;
     close $fh;
-    return @msg;
+    return $msg;
 }
 
 sub enqueue {
@@ -70,7 +74,7 @@ sub enqueue {
                 $result = <$fh>;
                 flock $fh, LOCK_UN;
                 close $fh;
-            } continue { sleep 1 }
+            } continue { safe_sleep 1 }
             unlink $fifo;
 
             $result = $self->json->decode($result);
@@ -87,11 +91,9 @@ sub enqueue {
 
 sub dequeue {
     my $self = shift;
-    push @{ $self->{queue} } => map {
-        $self->json->decode($_)
-    } $self->_read_queue();
+    my $json = $self->_read_queue() or return;
 
-    my $job = shift @{ $self->{queue} } or return;
+    my $job = $self->json->decode($json);
     my ($name, $args, $fifo) = @$job;
     return Workman::Job->new(
         name     => $name,
