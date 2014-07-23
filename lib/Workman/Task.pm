@@ -6,6 +6,8 @@ use utf8;
 use Class::Accessor::Lite ro => [qw/name code count/],
                           rw => [qw/on_start on_done on_abort/];
 
+use Log::Minimal qw/infof warnf/;
+
 sub new {
     my ($class, $name, $code) = @_;
     return bless +{
@@ -14,17 +16,17 @@ sub new {
         count => 0,
         on_start => sub {
             my $self = shift;
-            warn "[$$] START JOB: ", $self->name;
+            infof '[%d] START JOB: %s', $$, $self->name;
         },
         on_done => sub {
             my $self = shift;
-            warn "[$$] FINISH JOB: ", $self->name;
+            infof '[%d] FINISH JOB: %s', $$, $self->name;
         },
         on_abort => sub {
             my ($self, $e) = @_;
             my $name  = $self->name;
             my $count = $self->count;
-            warn "[$$] ABORT JOB: $name (count:$count) Error:$e";
+            warnf '[%d] ABORT JOB: %s (count:%d) Error:%s', $$, $name, $count, "$e";
         },
     } => $class;
 }

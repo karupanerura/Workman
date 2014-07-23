@@ -8,6 +8,7 @@ use Sys::SigAction qw/set_sig_handler/;
 use Socket qw/AF_UNIX SOCK_STREAM PF_UNSPEC/;
 use IO::Select;
 use Time::HiRes qw/gettimeofday tv_interval/;
+use Log::Minimal qw/debugf/;
 
 use constant MAX_SUPPORT_SIGNAL_LENGTH => 10;
 
@@ -42,7 +43,7 @@ sub register {
 sub _trap_signal {
     my ($self, $sig) = @_;
 
-    warn "[$$] SIG$sig RECEIVED"; ## TODO: use logger
+    debugf '[%d] SIG%s RECEIVED', $$, $sig;
     if ($self->{in_sleep}) {
         my $len = length $sig;
         my $ret = syswrite $self->{sig_wtr}, $sig, $len;
@@ -67,7 +68,7 @@ sub sleep :method {
         my $ret = sysread $sig_rdr, my $sig, MAX_SUPPORT_SIGNAL_LENGTH;
 	die $! if !$ret && $!;
         $finish_at = [gettimeofday];
-        warn "[$$] interrupt in sleep: $sig";
+        debugf '[%d] interrupt in sleep: %s', $$, $sig;
 	$self->_handle_signal($sig);
     }
     else {

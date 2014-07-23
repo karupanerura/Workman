@@ -9,6 +9,7 @@ use Class::Accessor::Lite rw => [qw/stat harakiri current_job task_set/];
 
 use Carp qw/croak/;
 use Try::Tiny;
+use Log::Minimal qw/warnf/;
 
 use Workman::Server::Exception::TaskNotFound;
 use Workman::Server::Exception::ForceKilled;
@@ -62,7 +63,7 @@ sub dequeue_loop {
             $queue->dequeue();
         }
         catch {
-            warn $_;
+            warnf "$_";
             undef;
         };
 

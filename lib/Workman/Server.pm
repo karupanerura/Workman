@@ -10,6 +10,7 @@ use File::Spec;
 use List::Util qw/sum/;
 use List::MoreUtils qw/any/;
 use Proc::Guard;
+use Log::Minimal qw/infof warnf/;
 
 use Workman::Server::Worker::Job;
 use Workman::Server::Worker::Admin;
@@ -31,8 +32,7 @@ sub scoreboard {
 sub run {
     my $self = shift;
 
-    # TODO: use logger
-    warn "[$$] START";
+    infof '[%d] START', $$;
     my $pm = $self->_create_parallel_prefork();
 
     my $wait_admin_workers = $self->_create_admin_workers();
@@ -41,8 +41,7 @@ sub run {
     $wait_job_workers->();
     $wait_admin_workers->();
 
-    # TODO: use logger
-    warn "[$$] SHUTDOWN";
+    infof '[%d] SHUTDOWN', $$;
 }
 
 sub _create_parallel_prefork {
@@ -52,13 +51,11 @@ sub _create_parallel_prefork {
         spawn_interval => $self->profile->spawn_interval(),
         after_fork     => sub {
             my (undef, $pid) = @_;
-            # TODO: logging
-            warn "[$pid] START JOB WORKER";
+            infof '[%d] START JOB WORKER', $pid;
         },
         on_child_reap => sub {
             my (undef, $pid) = @_;
-            # TODO: logging
-            warn "[$pid] FINISH JOB WORKER";
+            infof '[%d] FINISH JOB WORKER', $pid;
         },
         trap_signals => {
             INT  => 'TERM', # graceful shutdown
@@ -75,10 +72,10 @@ sub _create_admin_workers {
     my $guard  = Proc::Guard->new(code => sub { $worker->run });
 
     my $pid = $guard->pid;
-    warn "[$pid] START ADMIN WORKER";
+    infof '[%d] START ADMIN WORKER', $pid;
     return sub {
         $guard->stop;
-        warn "[$pid] STOP ADMIN WORKER";
+        infof '[%d] STOP ADMIN WORKER', $pid;
     };
 }
 
@@ -90,8 +87,7 @@ sub _create_job_workers {
     return sub {
         my $is_timeout = $pm->wait_all_children($self->profile->graceful_shutdown_timeout);
         if ($is_timeout) {
-            # TODO: use logger
-            warn "[$$] give up graceful shutdown. force shutdown!!";
+            warnf '[%d] give up graceful shutdown. force shutdown!!', $$;
             $pm->signal_all_children('ABRT'); # force kill children.
         }
         $pm->wait_all_children();
