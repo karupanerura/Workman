@@ -14,20 +14,6 @@ sub new {
         name  => $name,
         code  => $code,
         count => 0,
-        on_start => sub {
-            my $self = shift;
-            infof '[%d] START JOB: %s', $$, $self->name;
-        },
-        on_done => sub {
-            my $self = shift;
-            infof '[%d] FINISH JOB: %s', $$, $self->name;
-        },
-        on_abort => sub {
-            my ($self, $e) = @_;
-            my $name  = $self->name;
-            my $count = $self->count;
-            warnf '[%d] ABORT JOB: %s (count:%d) Error:%s', $$, $name, $count, "$e";
-        },
     } => $class;
 }
 
@@ -49,16 +35,21 @@ sub work_job {
 
 sub event_start {
     my $self = shift;
+    infof '[%d] START JOB: %s', $$, $self->name;
     $self->on_start->($self) if $self->on_start;
 }
 
 sub event_done {
     my $self = shift;
+    infof '[%d] FINISH JOB: %s', $$, $self->name;
     $self->on_done->($self) if $self->on_done;
 }
 
 sub event_abort {
     my ($self, $e) = @_;
+    my $name  = $self->name;
+    my $count = $self->count;
+    warnf '[%d] ABORT JOB: %s (count:%d) Error:%s', $$, $name, $count, "$e";
     $self->on_abort->($self, $e) if $self->on_abort;
 }
 
