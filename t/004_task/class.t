@@ -17,6 +17,7 @@ package main;
 use strict;
 use warnings;
 use Test::More tests => 11;
+use t::Util;
 
 my $task = Mock::Task->new;
 isa_ok $task, 'Workman::Task';

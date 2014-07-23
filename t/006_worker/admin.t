@@ -1,6 +1,7 @@
 use strict;
 use warnings;
 use Test::More;
+use t::Util;
 
 use Test::TCP qw/empty_port/;
 use HTTP::Tiny;

@@ -3,6 +3,7 @@ use warnings;
 use Test::More tests => 5;
 use Test::SharedFork 0.28;
 use Test::TCP;
+use t::Util;
 
 use Workman::Task;
 use Workman::Queue::File;
