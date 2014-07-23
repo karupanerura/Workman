@@ -13,6 +13,7 @@ use Log::Minimal qw/warnf/;
 
 use Workman::Server::Exception::TaskNotFound;
 use Workman::Server::Exception::ForceKilled;
+use Workman::Server::Exception::DequeueAbort;
 use Workman::Server::Util qw/safe_sleep/;
 
 sub _run {
@@ -63,8 +64,14 @@ sub dequeue_loop {
             $queue->dequeue();
         }
         catch {
-            warnf "$_";
-            undef;
+            my $e = $_;
+            if (Workman::Server::Exception::DequeueAbort->caught($e)) {
+                warnf '[%d] dequeue aborted. message: %s', $$, $e->message;
+                return undef;
+            }
+            else {
+                die $e; # rethrow
+            }
         };
 
         if (defined $job) {
