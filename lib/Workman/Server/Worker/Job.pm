@@ -11,6 +11,7 @@ use Carp qw/croak/;
 use Try::Tiny;
 
 use Workman::Server::Exception::TaskNotFound;
+use Workman::Server::Exception::ForceKilled;
 use Workman::Server::Util qw/safe_sleep/;
 
 sub _run {
@@ -42,7 +43,9 @@ sub abort {
 
     ## TODO: logging
     $self->shutdown($sig);
-    die "force killed." if $self->current_job;
+    if ($self->current_job) {
+        Workman::Server::Exception::ForceKilled->throw(message => 'force killed.');
+    }
 }
 
 
