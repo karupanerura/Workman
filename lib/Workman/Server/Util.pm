@@ -22,11 +22,11 @@ __END__
 
 =head1 NAME
 
-Workman::Server::Util - util for Workman::Server
+Workman::Server::Util - utility for Workman::Server
 
 =head1 DESCRIPTION
 
-This util for Workman::Server.
+This utility for Workman::Server.
 
 =head1 LICENSE
 
