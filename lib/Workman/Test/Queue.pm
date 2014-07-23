@@ -15,6 +15,7 @@ use JSON::XS;
 use Try::Tiny;
 use Fcntl qw/:flock/;
 use File::Temp qw/tempfile/;
+use List::Util qw/sum/;
 
 use Class::Accessor::Lite ro => [qw/queue taskset t json/];
 sub new {
@@ -37,14 +38,14 @@ sub new {
 sub plans {
     my $self = shift;
 
-    my @plans = qw/
-       isa
-       register_tasks
-       enqueue
-       dequeue
-    /;
+    my @plans = (
+       { name => 'isa',            tests => 1 },
+       { name => 'register_tasks', tests => 1 },
+       { name => 'enqueue',        tests => 1 },
+       { name => 'dequeue',        tests => 4 },
+    );
     if ($self->queue->can_wait_job && !$self->queue->isa('Workman::Queue::Mock')) {
-        push @plans => 'parallel';
+        push @plans => { name => 'parallel', tests => 101 };
     }
     return @plans;
 }
@@ -52,8 +53,11 @@ sub plans {
 sub run {
     my $self = shift;
 
-    for my $category ($self->plans) {
-        my $method = sprintf 'check_%s', $category;
+    my @plans = $self->plans;
+    my $tests = sum map { $_->{tests} } @plans;
+    $self->t->plan(tests => $tests);
+    for my $category (@plans) {
+        my $method = sprintf 'check_%s', $category->{name};
         $self->$method();
     }
 }
@@ -161,24 +165,21 @@ sub check_parallel {
                 $self->t->is_num($res->{id}, $id, 'should fetch result.');
             } catch {
                 my $e = $_;
-                $self->t->ok($id % $e->{num}, 'okay retry');
+                $self->t->ok($id % $e->{num}, 'should be thrown exception.');
             };
         });
     }
 
     my $is_timeout = timeout_call 30 => sub {
-        while (1) {
+        my $c = 0;
+        until ($c == 100) {
             flock $fh, LOCK_EX;
             seek $fh, 0, 0;
-            sysread $fh, my $c, 10;
+            sysread $fh, $c, 10;
             flock $fh, LOCK_UN;
-            if ($c == 100) {
-                undef @guard;
-                $self->t->ok(1, 'complete');
-                last;
-            }
-            sleep 1;
-        }
+        } continue { sleep 1 }
+        undef @guard;
+        $self->t->ok(1, 'complete');
     };
     $self->t->ok(0, 'timeout') if $is_timeout;
 }

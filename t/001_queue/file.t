@@ -13,4 +13,3 @@ my $test  = Workman::Test::Queue->new($queue);
 $test->run;
 
 unlink $file;
-done_testing;

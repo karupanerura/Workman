@@ -9,4 +9,3 @@ my $queue = Workman::Queue::Mock->new(enqueue_count => 0);
 my $test  = Workman::Test::Queue->new($queue);
 
 $test->run;
-done_testing;
