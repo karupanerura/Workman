@@ -78,8 +78,13 @@ sub dequeue_loop {
 
 sub work_job {
     my ($self, $job) = @_;
+    my $task = $self->task_set->get_task($job->name);
     try {
-        my $task = $self->task_set->get_task($job->name) or Workman::Server::Exception::TaskNotFound->throw;
+        unless ($task) {
+            Workman::Server::Exception::TaskNotFound->throw(
+                message => "task:@{[ $job->name ]} is not found.",
+            );
+        }
         $self->update_scoreboard_status_running($job);
         $self->current_job($job);
         my $result = $task->run($job->args);
@@ -90,6 +95,7 @@ sub work_job {
         $self->stat->{abort}++;
         $self->update_scoreboard_status_aborting($job, $_);
         $job->abort($_);
+        $task->on_abort($_) if $task;
     }
     finally {
         $self->update_scoreboard_status_finishing($job);
@@ -113,7 +119,6 @@ sub update_scoreboard_status_waiting {
 
 sub update_scoreboard_status_running {
     my ($self, $job) = @_;
-    warn "[$$] START JOB: ", $job->name;
     $self->update_scoreboard_status(running => {
         stat => $self->stat,
         job => +{
@@ -125,19 +130,18 @@ sub update_scoreboard_status_running {
 
 sub update_scoreboard_status_aborting {
     my ($self, $job, $e) = @_;
-    warn "[$$] ABORT JOB: ", $job->name, " Error: $e";
     $self->update_scoreboard_status(aborting => {
         stat => $self->stat,
         job => +{
-            name => $job->name,
-            args => $job->args,
+            name  => $job->name,
+            args  => $job->args,
+            error => "$e",
         },
     });
 }
 
 sub update_scoreboard_status_finishing {
     my ($self, $job) = @_;
-    warn "[$$] FINISH JOB: ", $job->name;
     $self->update_scoreboard_status(finishing => {
         stat => $self->stat,
         job  => {
