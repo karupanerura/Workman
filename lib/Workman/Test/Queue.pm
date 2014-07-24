@@ -91,7 +91,10 @@ sub check_dequeue {
     $self->_is_deeply($job->args, { this => { is => 'foo args' } }, 'should fetch');
     $job->done();
 
-    $job = $self->queue->dequeue();
+    undef $job;
+    timeout_call 3 => sub {
+        $job = $self->queue->dequeue();
+    };
     $self->t->is_eq($job, undef, 'should be empty');
 }
 
