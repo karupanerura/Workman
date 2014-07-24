@@ -40,8 +40,8 @@ sub plans {
 
     my @plans = (
        { name => 'isa',            tests => 1 },
-       { name => 'register_tasks', tests => 1 },
        { name => 'enqueue',        tests => 1 },
+       { name => 'register_tasks', tests => 1 },
        { name => 'dequeue',        tests => 4 },
     );
     if ($self->queue->can_wait_job && !$self->queue->isa('Workman::Queue::Mock')) {
