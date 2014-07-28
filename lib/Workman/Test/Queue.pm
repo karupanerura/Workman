@@ -30,7 +30,7 @@ sub new {
     return bless {
         queue   => $queue,
         taskset => $taskset,
-        verbose => 0,
+        verbose => $ENV{TRAVIS} ? 1 : 0,
         t       => Test::Builder->new,
         json    => JSON::XS->new->ascii->canonical->allow_nonref->allow_blessed,
     } => $class;
@@ -63,13 +63,14 @@ sub run {
     }
 }
 
+my $VERBOSE_METHOD = $ENV{TRAVIS} ? 'diag' : 'note';
 sub _verbose_log {
     my $self = shift;
     return unless $self->verbose;
 
     my ($pkg, undef, $line) = caller;
     my @msg = $self->t->explain(@_);
-    $self->t->note("[$$] VERBOSE: $pkg:L$line: @msg");
+    $self->t->$VERBOSE_METHOD("[$$] VERBOSE: $pkg:L$line: @msg");
 }
 
 sub check_isa {
