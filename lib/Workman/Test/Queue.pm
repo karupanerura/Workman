@@ -17,7 +17,7 @@ use Fcntl qw/:flock/;
 use File::Temp qw/tempfile/;
 use List::Util qw/sum/;
 
-use Class::Accessor::Lite ro => [qw/queue taskset t json/];
+use Class::Accessor::Lite ro => [qw/queue taskset t json/], rw => [qw/verbose/];
 sub new {
     my ($class, $queue) = @_;
 
@@ -30,6 +30,7 @@ sub new {
     return bless {
         queue   => $queue,
         taskset => $taskset,
+        verbose => 0,
         t       => Test::Builder->new,
         json    => JSON::XS->new->ascii->canonical->allow_nonref->allow_blessed,
     } => $class;
@@ -62,8 +63,18 @@ sub run {
     }
 }
 
+sub _verbose_log {
+    my $self = shift;
+    return unless $self->verbose;
+
+    my ($pkg, undef, $line) = caller;
+    my @msg = $self->t->explain(@_);
+    $self->t->note("[$$] VERBOSE: $pkg:L$line: @msg");
+}
+
 sub check_isa {
     my $self = shift;
+    $self->_verbose_log($self->queue);
     $self->t->ok($self->queue->isa('Workman::Queue'), 'should extend Workman::Queue');
 }
 
@@ -72,6 +83,7 @@ sub check_register_tasks {
 
     local $@;
     eval {
+        $self->_verbose_log($self->taskset);
         $self->queue->register_tasks($self->taskset);
     };
     $self->t->is_eq($@, '', 'sould be live');
@@ -80,12 +92,14 @@ sub check_register_tasks {
 sub check_enqueue {
     my $self = shift;
     my $req  = $self->queue->enqueue(Foo => { this => { is => 'foo args' } });
+    $self->_verbose_log($req);
     $self->t->ok($req->isa('Workman::Request'), 'should extend Workman::Request');
 }
 
 sub check_dequeue {
     my $self = shift;
     my $job  = $self->queue->dequeue();
+    $self->_verbose_log($job);
     $self->t->ok($job->isa('Workman::Job'), 'should extend Workman::Job');
     $self->t->is_eq($job->name, 'Foo', 'should fetch Foo');
     $self->_is_deeply($job->args, { this => { is => 'foo args' } }, 'should fetch');
@@ -95,6 +109,7 @@ sub check_dequeue {
     timeout_call 3 => sub {
         $job = $self->queue->dequeue();
     };
+    $self->_verbose_log($job);
     $self->t->is_eq($job, undef, 'should be empty');
 }
 
@@ -135,6 +150,8 @@ sub check_parallel {
                 };
                 next unless defined $job;
 
+                $self->_verbose_log($job);
+
                 open my $fh, '+<', $filename or die "failed to open temporary file: $filename: $!";
                 flock $fh, LOCK_EX;
                 sysread $fh, my $c, 10;
@@ -143,6 +160,8 @@ sub check_parallel {
                 syswrite $fh, $c, length $c;
                 flock $fh, LOCK_UN;
                 close $fh;
+
+                $self->_verbose_log($c);
 
                 my $id = $job->args->{id};
                 if ($id % $num == 0) {
@@ -163,6 +182,7 @@ sub check_parallel {
             local $SIG{TERM} = 'IGNORE';
             sleep 1;
             my $req = $self->queue->enqueue(Foo => { id => $id });
+            $self->_verbose_log($req);
             try {
                 my $res = $req->wait;
                 $self->t->is_num($res->{id}, $id, 'should fetch result.');
