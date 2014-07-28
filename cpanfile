@@ -6,6 +6,7 @@ requires 'File::Temp';
 requires 'JSON::XS';
 requires 'List::MoreUtils';
 requires 'List::Util';
+requires 'Log::Minimal';
 requires 'Module::Load';
 requires 'Parallel::Prefork', '0.17';
 requires 'Parallel::Scoreboard';
@@ -13,6 +14,7 @@ requires 'Plack::Loader';
 requires 'Plack::Request';
 requires 'Proc::Guard';
 requires 'Scalar::Util';
+requires 'Socket';
 requires 'Sys::SigAction';
 requires 'Test::Builder';
 requires 'Test::SharedFork', '0.28';
@@ -27,6 +29,7 @@ on configure => sub {
 
 on test => sub {
     requires 'HTTP::Tiny';
+    requires 'Test::Builder::Module';
     requires 'Test::More', '0.98';
     requires 'Test::TCP';
 };
