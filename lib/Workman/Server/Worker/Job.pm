@@ -100,10 +100,11 @@ sub work_job {
         $self->stat->{done}++;
     }
     catch {
+        my $e = $_;
         $self->stat->{abort}++;
-        $self->update_scoreboard_status_aborting($job, $_);
-        $job->abort($_);
-        $task->on_abort($_) if $task;
+        $self->update_scoreboard_status_aborting($job, $e);
+        $job->abort($e);
+        $task->event_abort($e) if $task;
     }
     finally {
         $self->update_scoreboard_status_finishing($job);
