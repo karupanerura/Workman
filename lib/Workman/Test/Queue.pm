@@ -11,10 +11,9 @@ use POSIX qw/SA_RESTART/;
 use Time::HiRes;
 use Workman::Task;
 use Workman::Task::Set;
+use Workman::Test::Shared;
 use JSON::XS;
 use Try::Tiny;
-use Fcntl qw/:flock/;
-use File::Temp qw/tempfile/;
 use List::Util qw/sum/;
 
 use Class::Accessor::Lite ro => [qw/queue taskset t json/], rw => [qw/verbose/];
@@ -126,8 +125,7 @@ sub _is_deeply {
 sub check_parallel {
     my $self = shift;
 
-    my ($fh, $filename) = tempfile();
-    syswrite $fh, '0', 1;
+    my $shared = Workman::Test::Shared->new(0);
 
     my @guard;
     for my $num (1..10) {
@@ -153,16 +151,12 @@ sub check_parallel {
 
                 $self->_verbose_log($job);
 
-                open my $fh, '+<', $filename or die "failed to open temporary file: $filename: $!";
-                flock $fh, LOCK_EX;
-                sysread $fh, my $c, 10;
-                $c++;
-                seek $fh, 0, 0;
-                syswrite $fh, $c, length $c;
-                flock $fh, LOCK_UN;
-                close $fh;
-
-                $self->_verbose_log($c);
+                $shared->txn(sub {
+                    my $c = shift;
+                    $c++;
+                    $self->_verbose_log($c);
+                    return $c;
+                });
 
                 my $id = $job->args->{id};
                 if ($id % $num == 0) {
@@ -197,10 +191,7 @@ sub check_parallel {
     my $is_timeout = timeout_call 30 => sub {
         my $c = 0;
         until ($c == 100) {
-            flock $fh, LOCK_EX;
-            seek $fh, 0, 0;
-            sysread $fh, $c, 10;
-            flock $fh, LOCK_UN;
+            $shared->txn(sub { $c = shift });
         } continue { sleep 1 }
         undef @guard;
         $self->t->ok(1, 'complete');
