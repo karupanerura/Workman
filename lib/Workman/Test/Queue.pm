@@ -30,7 +30,7 @@ sub new {
     return bless {
         queue   => $queue,
         taskset => $taskset,
-        verbose => $ENV{TRAVIS} ? 1 : 0,
+        verbose => 0,
         t       => Test::Builder->new,
         json    => JSON::XS->new->ascii->canonical->allow_nonref->allow_blessed,
     } => $class;
@@ -45,7 +45,7 @@ sub plans {
        { name => 'register_tasks', tests => 1 },
        { name => 'dequeue',        tests => 4 },
     );
-    if ($self->queue->can_wait_job && !$self->queue->isa('Workman::Queue::Mock')) {
+    if ($self->queue->can_wait_job && !$self->queue->isa('Workman::Queue::Mock') && !$ENV{TRAVIS}) {
         push @plans => { name => 'parallel', tests => 101 };
     }
     return @plans;
