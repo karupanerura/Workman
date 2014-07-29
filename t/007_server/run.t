@@ -11,7 +11,7 @@ use Workman::Server::Profile;
 use Workman::Server;
 use File::Temp qw/tempfile/;
 
-my (undef, $file) = tempfile();
+my (undef, $file) = tempfile(EXLOCK => 0);
 
 my $worker = Test::TCP->new(
     code => sub {
