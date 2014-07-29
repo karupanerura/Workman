@@ -17,7 +17,10 @@ use Workman::Server::Worker::Admin;
 
 use Class::Accessor::Lite
     new => 1,
-    ro  => [qw/profile name/];
+    ro  => [
+        qw/profile name on_fork on_leap/, # args
+        qw/admin_pid job_worker_pids job_worker_generation/,   # stat
+    ];
 
 sub scoreboard {
     my $self = shift;
@@ -46,16 +49,22 @@ sub run {
 
 sub _create_parallel_prefork {
     my $self = shift;
+    my $on_leap = $self->on_leap;
+    $self->{job_worker_generation} = 0;
+    $self->{job_worker_pids}       = {};
     return Parallel::Prefork->new({
         max_workers    => $self->profile->max_workers(),
         spawn_interval => $self->profile->spawn_interval(),
         after_fork     => sub {
             my (undef, $pid) = @_;
             infof '[%d] START JOB WORKER', $pid;
+            $self->{job_worker_pids}->{$pid} = $self->{job_worker_generation};
         },
         on_child_reap => sub {
             my (undef, $pid) = @_;
             infof '[%d] FINISH JOB WORKER', $pid;
+            $self->{_reapd_job_worker_pids}->{$$} = delete $self->{job_worker_pids}->{$pid};
+            $on_leap->($pid) if $on_leap;
         },
         trap_signals => {
             INT  => 'TERM', # graceful shutdown
@@ -71,7 +80,7 @@ sub _create_admin_workers {
     my $worker = Workman::Server::Worker::Admin->new(profile => $self->profile, scoreboard => $self->scoreboard);
     my $guard  = Proc::Guard->new(code => sub { $worker->run });
 
-    my $pid = $guard->pid;
+    my $pid = $self->{admin_pid} = $guard->pid;
     infof '[%d] START ADMIN WORKER', $pid;
     return sub {
         $guard->stop;
@@ -82,8 +91,15 @@ sub _create_admin_workers {
 sub _create_job_workers {
     my ($self, $pm) = @_;
 
-    my $worker = Workman::Server::Worker::Job->new(profile => $self->profile, scoreboard => $self->scoreboard);
-    $pm->start(sub { $worker->run() }) while $pm->signal_received ne 'INT' and $pm->signal_received ne 'TERM';
+    local $SIG{ALRM} = $SIG{ALRM};
+    my $worker  = Workman::Server::Worker::Job->new(profile => $self->profile, scoreboard => $self->scoreboard);
+    my $on_fork = $self->on_fork;
+    until ($self->_check_signal($pm)) {
+        $pm->start(sub {
+            $on_fork->($$) if $on_fork;
+            $worker->run();
+        });
+    }
     return sub {
         my $is_timeout = $pm->wait_all_children($self->profile->graceful_shutdown_timeout);
         if ($is_timeout) {
@@ -92,6 +108,30 @@ sub _create_job_workers {
         }
         $pm->wait_all_children();
     };
+}
+
+sub _check_signal {
+    my ($self, $pm) = @_;
+    return 1 if $pm->signal_received eq 'INT';
+    return 1 if $pm->signal_received eq 'TERM';
+
+    if ($pm->signal_received eq 'HUP') {
+        my $old_generation = $self->{job_worker_generation}++;
+
+        my $super  = $SIG{ALRM};
+        $SIG{ALRM} = sub {
+            my @target_pids = grep { $self->{job_worker_pids}->{$_} <= $old_generation } keys %{ $self->{job_worker_pids} };
+            if (@target_pids) {
+                warnf '[%d] give up graceful restart. force shutdown child process!!', $$;
+                kill ABRT => @target_pids; # force kill children.
+            }
+            $SIG{ALRM} = $super;
+        };
+        alarm $self->profile->graceful_shutdown_timeout;
+
+    }
+
+    return 0;
 }
 
 1;

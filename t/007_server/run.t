@@ -1,6 +1,6 @@
 use strict;
 use warnings;
-use Test::More tests => 5;
+use Test::More tests => 12;
 use Test::SharedFork 0.28;
 use Test::TCP;
 use t::Util;
@@ -10,7 +10,6 @@ use Workman::Queue::File;
 use Workman::Server::Profile;
 use Workman::Server;
 use File::Temp qw/tempfile/;
-use POSIX qw/SIGHUP SIGTERM/;
 
 my (undef, $file) = tempfile();
 
@@ -39,7 +38,25 @@ my $worker = Test::TCP->new(
                 return { id => $id };
             }));
         });
-        Workman::Server->new(profile => $profile)->run;
+
+        my %pid;
+        my $server = Workman::Server->new(
+            profile => $profile,
+            on_fork => sub {
+                my $pid = shift;
+                $pid{$pid} = 1;
+                is $pid, $$, 'should called `on_fork` callback in child process.';
+
+                srand();
+            },
+            on_leap => sub {
+                my $pid = shift;
+                delete $pid{$pid};
+            }
+        );
+        $server->run;
+        is scalar %pid, 0, 'should dead all children.';
+
         exit 0;
     }
 );
@@ -53,8 +70,9 @@ $queue->enqueue(Foo => { this => { is => 'foo args' } });
 my $id1 = $queue->enqueue(Bar => { this => { is => 'bar args' } })->wait->{id};
 note "id: $id1";
 
-kill SIGHUP, $pid;
+kill HUP => $pid;
 sleep 3;
+
 my $id2 = $queue->enqueue(Bar => { this => { is => 'bar args' } })->wait->{id};
 isnt $id2, $id1, 'restart ok';
 
