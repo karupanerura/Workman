@@ -4,7 +4,7 @@
       "karupanerura <karupa@cpan.org>"
    ],
    "dynamic_config" : 0,
-   "generated_by" : "Minilla/v2.1.1, CPAN::Meta::Converter version 2.141520",
+   "generated_by" : "Minilla/v2.1.1, CPAN::Meta::Converter version 2.142060",
    "license" : [
       "perl_5"
    ],
@@ -51,6 +51,7 @@
             "JSON::XS" : "0",
             "List::MoreUtils" : "0",
             "List::Util" : "0",
+            "Log::Minimal" : "0",
             "Module::Load" : "0",
             "Parallel::Prefork" : "0.17",
             "Parallel::Scoreboard" : "0",
@@ -58,6 +59,7 @@
             "Plack::Request" : "0",
             "Proc::Guard" : "0",
             "Scalar::Util" : "0",
+            "Socket" : "0",
             "Sys::SigAction" : "0",
             "Test::Builder" : "0",
             "Test::SharedFork" : "0.28",
@@ -69,6 +71,7 @@
       "test" : {
          "requires" : {
             "HTTP::Tiny" : "0",
+            "Test::Builder::Module" : "0",
             "Test::More" : "0.98",
             "Test::TCP" : "0"
          }
