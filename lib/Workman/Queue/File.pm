@@ -99,18 +99,14 @@ sub dequeue {
             my $result = shift;
 
             open my $fh, '>', $fifo or return;
-            flock $fh, LOCK_EX;
             syswrite $fh, $self->json->encode([RESULT_TAG_DONE, $result]);
-            flock $fh, LOCK_UN;
             close $fh;
         },
         on_abort => sub {
             my $e = shift;
 
             open my $fh, '>', $fifo or return;
-            flock $fh, LOCK_EX;
             syswrite $fh, $self->json->encode([RESULT_TAG_ABORT, $e]);
-            flock $fh, LOCK_UN;
             close $fh;
         },
     );
