@@ -69,14 +69,9 @@ sub enqueue {
     $self->_write_queue($msg);
     return Workman::Request->new(
         on_wait => sub {
-            my $result;
-            until ($result) {
-                open my $fh, '<', $fifo or die $!;
-                flock $fh, LOCK_EX;
-                $result = <$fh>;
-                flock $fh, LOCK_UN;
-                close $fh;
-            } continue { safe_sleep 1 }
+            open my $fh, '<', $fifo or die $!;
+            my $result = <$fh>;
+            close $fh;
             unlink $fifo;
 
             $result = $self->json->decode($result);
