@@ -13,6 +13,7 @@ use Workman::Request;
 use Workman::Job;
 use Workman::Server::Util qw/safe_sleep/;
 use JSON::XS;
+use IO::Handle;
 use File::Spec;
 use File::Basename qw/dirname/;
 use File::Path 2.00 qw/make_path/;
@@ -32,6 +33,7 @@ sub _write_queue {
     my $file = $self->file;
     open my $fh, '>>', $file or die "failed to open file: $file: $!";
     flock $fh, LOCK_EX;
+    $fh->autoflush(1);
     syswrite $fh, "$msg$/";
     flock $fh, LOCK_UN;
     close $fh;
@@ -43,6 +45,7 @@ sub _read_queue {
 
     open my $fh, '+<', $file or return;
     flock $fh, LOCK_EX;
+    $fh->autoflush(1);
     my $msg = <$fh>;
     my $que = do { local $/; <$fh> };
     seek $fh, 0, 0;
@@ -105,6 +108,7 @@ sub dequeue {
 
             open my $fh, '>', $fifo or return;
             flock $fh, LOCK_EX;
+            $fh->autoflush(1);
             syswrite $fh, $self->json->encode([RESULT_TAG_DONE, $result]);
             flock $fh, LOCK_UN;
             close $fh;
@@ -114,6 +118,7 @@ sub dequeue {
 
             open my $fh, '>', $fifo or return;
             flock $fh, LOCK_EX;
+            $fh->autoflush(1);
             syswrite $fh, $self->json->encode([RESULT_TAG_ABORT, $e]);
             flock $fh, LOCK_UN;
             close $fh;
