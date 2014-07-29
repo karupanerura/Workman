@@ -32,7 +32,7 @@ sub _write_queue {
     my $file = $self->file;
     open my $fh, '>>', $file or die "failed to open file: $file: $!";
     flock $fh, LOCK_EX;
-    print $fh "$msg$/";
+    syswrite $fh, "$msg$/";
     flock $fh, LOCK_UN;
     close $fh;
 }
@@ -40,15 +40,17 @@ sub _write_queue {
 sub _read_queue {
     my $self = shift;
     my $file = $self->file;
+
     open my $fh, '+<', $file or return;
     flock $fh, LOCK_EX;
-    my @msg = <$fh>;
-    my $msg = shift @msg;
+    my $msg = <$fh>;
+    my $que = do { local $/; <$fh> };
     seek $fh, 0, 0;
-    print $fh $_ for @msg;
-    truncate $fh, tell $fh;
+    truncate $fh, 0;
+    syswrite $fh, $que if $que;
     flock $fh, LOCK_UN;
     close $fh;
+
     return $msg;
 }
 
@@ -103,7 +105,7 @@ sub dequeue {
 
             open my $fh, '>', $fifo or return;
             flock $fh, LOCK_EX;
-            print {$fh} $self->json->encode([RESULT_TAG_DONE, $result]);
+            syswrite $fh, $self->json->encode([RESULT_TAG_DONE, $result]);
             flock $fh, LOCK_UN;
             close $fh;
         },
@@ -112,7 +114,7 @@ sub dequeue {
 
             open my $fh, '>', $fifo or return;
             flock $fh, LOCK_EX;
-            print {$fh} $self->json->encode([RESULT_TAG_ABORT, $e]);
+            syswrite $fh, $self->json->encode([RESULT_TAG_ABORT, $e]);
             flock $fh, LOCK_UN;
             close $fh;
         },
