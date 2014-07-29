@@ -5,7 +5,6 @@ use utf8;
 
 use JSON::XS;
 use File::Temp qw/tempfile/;
-use IO::Handle;
 
 sub new {
     my ($class, $initial_data) = @_;
@@ -19,7 +18,6 @@ sub new {
     } => $class;
 
     my $body = $json->encode($initial_data);
-    $fh->autoflush(1);
     syswrite $fh, $body;
     seek $fh, 0, 0;
     close $fh;
@@ -60,12 +58,10 @@ use strict;
 use warnings;
 use utf8;
 use Fcntl qw/:flock/;
-use IO::Handle;
 
 sub new {
     my ($class, $shared) = @_;
     open my $fh, '+<:raw', $shared->{file} or die "failed to open temporary file: $shared->{file}: $!";
-    $fh->autoflush(1);
     flock $fh, LOCK_EX;
     return bless { fh => $fh } => $class;
 }
