@@ -9,7 +9,7 @@ our @EXPORT_OK = qw/safe_sleep/;
 use Time::HiRes ();
 
 our $SIGNAL_HANDLER;
-sub safe_sleep {
+sub safe_sleep (;$) {## no critic
     $SIGNAL_HANDLER ? $SIGNAL_HANDLER->sleep(@_) : Time::HiRes::sleep(@_);
 }
 
