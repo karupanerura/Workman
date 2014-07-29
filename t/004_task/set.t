@@ -26,10 +26,13 @@ subtest 'when passed already registerd named task' => sub {
     is $set->get_task('Foo'), $foo_task, 'should not broke instance.';
 };
 
-is_deeply [sort $set->get_all_tasks], [sort $foo_task, $bar_task]
+is eval { $set->add_class('t::Task::Foo'); 1 }, 1, '$set->add_class should not die when passed yet registerd task.';
+isa_ok $set->get_task('t::Task::Foo'), 't::Task::Foo', '$set->get_task should return instance of t::Task::Foo.';
+
+is_deeply [sort $set->get_all_tasks], [sort $foo_task, $bar_task, $set->get_task('t::Task::Foo')]
     => '$set->get_all_tasks should return all registerd tasks';
 
-is_deeply [sort $set->get_all_task_names], [sort 'Foo', 'Bar']
+is_deeply [sort $set->get_all_task_names], [sort 'Foo', 'Bar', 't::Task::Foo']
     => '$set->get_all_task_names should return name of all registerd tasks';
 
 subtest 'when cloned' => sub {
@@ -41,6 +44,22 @@ subtest 'when cloned' => sub {
     is_deeply [$cloned_set->get_all_tasks], [], '$cloned_set->get_all_tasks return empty.';
     is_deeply [$cloned_set->get_all_task_names], [], '$cloned_set->get_all_task_names return empty.';
     ok $set->exists('Foo'), 'but, $set should be not broken.';
+};
+
+subtest 'when merged' => sub {
+    my $set1 = $set->clone;
+    my $set2 = Workman::Task::Set->new->add_task(Workman::Task->new(Fuga => sub {}))->add_task(Workman::Task->new(Hoge => sub {}));
+    $set1->merge($set2);
+    note explain [sort $set1->get_all_task_names];
+    is_deeply [sort $set1->get_all_task_names], [sort qw/Bar Foo Fuga Hoge t::Task::Foo/], 'expected task names ok.';
+};
+
+subtest 'overload of add method' => sub {
+    my $set2 = Workman::Task::Set->new->add_task(Workman::Task->new(Fuga => sub {}));
+    is eval { $set->add(Workman::Task->new(Hoge => sub {})); 1 }, 1, '$set->add() allow pass Workman::Task object.';
+    is eval { $set->add('t::Task::Bar');                     1 }, 1, '$set->add() allow pass Workman::Task::Class.';
+    is eval { $set->add($set2);                              1 }, 1, '$set->add() allow pass Workman::Task::Set object.';
+    is_deeply [sort $set->get_all_task_names], [sort qw/Bar Foo Fuga Hoge t::Task::Bar t::Task::Foo/], 'expected task names ok.';
 };
 
 done_testing;
