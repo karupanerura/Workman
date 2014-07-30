@@ -91,7 +91,7 @@ sub check_register_tasks {
 
 sub check_enqueue {
     my $self = shift;
-    my $req  = $self->queue->enqueue(Foo => { this => { is => 'foo args' } });
+    my $req  = $self->queue->enqueue(Foo => { id => 1 });
     $self->_verbose_log($req);
     $self->t->ok($req->isa('Workman::Request'), 'should extend Workman::Request');
 }
@@ -102,7 +102,7 @@ sub check_dequeue {
     $self->_verbose_log($job);
     $self->t->ok($job->isa('Workman::Job'), 'should extend Workman::Job');
     $self->t->is_eq($job->name, 'Foo', 'should fetch Foo');
-    $self->_is_deeply($job->args, { this => { is => 'foo args' } }, 'should fetch');
+    $self->_is_deeply($job->args, { id => 1 }, 'should fetch');
     $job->done();
 
     undef $job;
