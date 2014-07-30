@@ -8,7 +8,7 @@ use parent qw/Workman::Server::Worker/;
 use Class::Accessor::Lite rw => [qw/stat harakiri current_job task_set/];
 
 use Carp qw/croak/;
-use Try::Tiny;
+use Try::Tiny 0.04;
 use Log::Minimal qw/warnf/;
 
 use Workman::Server::Exception::TaskNotFound;

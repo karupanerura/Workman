@@ -49,8 +49,7 @@
             "File::Path" : "2.00",
             "File::Temp" : "0",
             "JSON::XS" : "0",
-            "List::MoreUtils" : "0",
-            "List::Util" : "0",
+            "List::Util" : "1.35",
             "Log::Minimal" : "0",
             "Module::Load" : "0",
             "Parallel::Prefork" : "0.17",
@@ -64,7 +63,7 @@
             "Test::Builder" : "0",
             "Test::SharedFork" : "0.28",
             "Time::HiRes" : "0",
-            "Try::Tiny" : "0",
+            "Try::Tiny" : "0.04",
             "parent" : "0"
          }
       },

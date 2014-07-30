@@ -7,8 +7,7 @@ use Time::HiRes;
 use Parallel::Prefork 0.17;
 use Parallel::Scoreboard;
 use File::Spec;
-use List::Util qw/sum/;
-use List::MoreUtils qw/any/;
+use List::Util 1.35 qw/sum any/;
 use Proc::Guard;
 use Log::Minimal qw/infof warnf/;
 

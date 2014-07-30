@@ -4,8 +4,7 @@ requires 'Exception::Tiny';
 requires 'File::Path', '2.00';
 requires 'File::Temp';
 requires 'JSON::XS';
-requires 'List::MoreUtils';
-requires 'List::Util';
+requires 'List::Util', '1.35';
 requires 'Log::Minimal';
 requires 'Module::Load';
 requires 'Parallel::Prefork', '0.17';
@@ -19,7 +18,7 @@ requires 'Sys::SigAction';
 requires 'Test::Builder';
 requires 'Test::SharedFork', '0.28';
 requires 'Time::HiRes';
-requires 'Try::Tiny';
+requires 'Try::Tiny', '0.04';
 requires 'parent';
 
 on configure => sub {
