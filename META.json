@@ -64,7 +64,8 @@
             "Test::SharedFork" : "0.28",
             "Time::HiRes" : "0",
             "Try::Tiny" : "0.04",
-            "parent" : "0"
+            "parent" : "0",
+            "perl" : "v5.8.1"
          }
       },
       "test" : {

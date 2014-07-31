@@ -2,6 +2,7 @@ package Workman;
 use strict;
 use warnings;
 use utf8;
+use v5.8.1;
 
 our $VERSION = "0.01";
 
