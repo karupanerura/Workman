@@ -59,7 +59,7 @@ sub run {
     is scalar @pids, 6, 'should create 5 job workers and one admin worker.';
 
     kill HUP => $pid;
-    sleep 3;
+    sleep 5;
 
     my @new_pids;
     $PID_MAP_SHARED->txn(sub {
@@ -71,7 +71,7 @@ sub run {
     ok  kill(0, $_), "should lived new child. pid:$_" for @new_pids;
 
     $worker->stop;
-    sleep 3;
+    sleep 5;
 
     ok !kill(0, $pid), "should not lived parent.";
     ok !kill(0, $_),   "should not lived old child. pid:$_" for @pids;
