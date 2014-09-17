@@ -77,6 +77,7 @@ my $id2 = $queue->enqueue(Bar => { this => { is => 'bar args' } })->wait->{id};
 isnt $id2, $id1, 'restart ok';
 
 $worker->stop;
+sleep 3;
 ok !kill(0, $pid), 'shutdown ok';
 
 unlink $file;
