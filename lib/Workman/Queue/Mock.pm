@@ -6,7 +6,7 @@ use utf8;
 use parent qw/Workman::Queue/;
 use Class::Accessor::Lite
     ro => [qw/task_set/],
-    rw => [qw/on_wait on_background on_done on_abort on_dequeue_abort/];
+    rw => [qw/on_wait on_background on_done on_fail on_abort on_dequeue_abort/];
 
 use Workman::Request;
 use Workman::Job;
@@ -40,6 +40,7 @@ sub dequeue {
         name     => $name,
         args     => $args,
         on_done  => $self->on_done,
+        on_fail  => $self->on_fail,
         on_abort => $self->on_abort,
     );
 }

@@ -1,4 +1,4 @@
-package Workman::Server::Exception::ForceKilled;
+package Workman::Server::Exception::TaskAbort;
 use strict;
 use warnings;
 use utf8;

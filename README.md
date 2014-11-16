@@ -1,4 +1,4 @@
-[![Build Status](https://travis-ci.org/karupanerura/Workman.png?branch=master)](https://travis-ci.org/karupanerura/Workman) [![Coverage Status](https://coveralls.io/repos/karupanerura/Workman/badge.png?branch=master)](https://coveralls.io/r/karupanerura/Workman?branch=master)
+[![Build Status](https://travis-ci.org/karupanerura/Workman.svg?branch=master)](https://travis-ci.org/karupanerura/Workman) [![Coverage Status](https://img.shields.io/coveralls/karupanerura/Workman/master.svg)](https://coveralls.io/r/karupanerura/Workman?branch=master)
 # NAME
 
 Workman - light weight job-queue worker framework

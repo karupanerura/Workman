@@ -19,6 +19,7 @@ use File::Path 2.00 qw/make_path/;
 
 use constant RESULT_TAG_DONE  => 'done';
 use constant RESULT_TAG_ABORT => 'abort';
+use constant RESULT_TAG_FAIL  => 'fail';
 
 sub register_tasks {} # not needed
 
@@ -76,8 +77,15 @@ sub enqueue {
 
             $result = $self->json->decode($result);
             my ($tag, $res) = @$result;
-            die $res if $tag eq RESULT_TAG_ABORT;
-            return $res;
+            if ($tag eq RESULT_TAG_ABORT) {
+                return $self->enqueue($name, $args)->wait;
+            }
+            elsif ($tag eq RESULT_TAG_FAIL) {
+                return if $tag eq RESULT_TAG_FAIL;
+            }
+            else {
+                return $res;
+            }
         },
         on_background => sub {
             unlink $fifo;
@@ -103,10 +111,13 @@ sub dequeue {
             close $fh;
         },
         on_abort => sub {
-            my $e = shift;
-
             open my $fh, '>', $fifo or return;
-            syswrite $fh, $self->json->encode([RESULT_TAG_ABORT, $e]);
+            syswrite $fh, $self->json->encode([RESULT_TAG_ABORT]);
+            close $fh;
+        },
+        on_fail => sub {
+            open my $fh, '>', $fifo or return;
+            syswrite $fh, $self->json->encode([RESULT_TAG_FAIL]);
             close $fh;
         },
     );

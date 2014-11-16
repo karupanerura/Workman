@@ -9,17 +9,19 @@ use Class::Accessor::Lite rw => [qw/stat harakiri current_job task_set/];
 
 use Carp qw/croak/;
 use Try::Tiny 0.04;
-use Log::Minimal qw/warnf/;
+use Log::Minimal qw/warnf ddf/;
 
 use Workman::Server::Exception::TaskNotFound;
-use Workman::Server::Exception::ForceKilled;
 use Workman::Server::Exception::DequeueAbort;
+use Workman::Server::Exception::TaskAbort;
+use Workman::Server::Exception::TaskAbort::ForceKilled;
 use Workman::Server::Util qw/safe_sleep/;
 
 sub _run {
     my $self = shift;
     $self->stat(+{
         abort => 0,
+        fail  => 0,
         done  => 0,
     });
     $self->harakiri(0);
@@ -46,7 +48,7 @@ sub abort {
     ## TODO: logging
     $self->shutdown($sig);
     if ($self->current_job) {
-        Workman::Server::Exception::ForceKilled->throw(message => 'force killed.');
+        Workman::Server::Exception::TaskAbort::ForceKilled->throw(message => 'force killed.');
     }
 }
 
@@ -101,10 +103,18 @@ sub work_job {
     }
     catch {
         my $e = $_;
-        $self->stat->{abort}++;
-        $self->update_scoreboard_status_aborting($job, $e);
-        $job->abort($e);
-        $task->event_abort($e) if $task;
+        if (Workman::Server::Exception::TaskAbort->caught($e)) {
+            $self->stat->{abort}++;
+            $self->update_scoreboard_status_aborting($job, $e);
+            $job->abort();
+            $task->event_abort($e) if $task;
+        }
+        else {
+            $self->stat->{fail}++;
+            $self->update_scoreboard_status_failure($job, $e);
+            $job->fail();
+            $task->event_fail($e) if $task;
+        }
     }
     finally {
         $self->update_scoreboard_status_finishing($job);
@@ -133,6 +143,18 @@ sub update_scoreboard_status_running {
         job => +{
             name => $job->name,
             args => $job->args,
+        },
+    });
+}
+
+sub update_scoreboard_status_failure {
+    my ($self, $job, $e) = @_;
+    $self->update_scoreboard_status(failure => {
+        stat => $self->stat,
+        job => +{
+            name  => $job->name,
+            args  => $job->args,
+            error => "$e",
         },
     });
 }

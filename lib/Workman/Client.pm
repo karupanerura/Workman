@@ -10,7 +10,7 @@ use Try::Tiny;
 sub enqueue {
     my ($self, $name, $args, $opt) = @_;
     $opt ||= {};
-    return $self->queue->enqueue($name, $args);
+    return $self->queue->enqueue($name, $args, $opt);
 }
 
 sub enqueue_background {
@@ -21,16 +21,6 @@ sub enqueue_background {
 
 sub enqueue_with_wait {
     my ($self, $name, $args, $opt) = @_;
-    $opt ||= {};
-    if (exists $opt->{on_abort}) {
-	my $on_abort = delete $opt->{on_abort};
-	return try {
-            $self->enqueue_with_wait($name, $args, $opt);
-	}
-	catch {
-            $on_abort->($_);
-	};
-    }
     return $self->enqueue($name, $args, $opt)->wait;
 }
 

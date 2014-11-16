@@ -20,10 +20,10 @@ requires 'Test::SharedFork', '0.28';
 requires 'Time::HiRes';
 requires 'Try::Tiny', '0.04';
 requires 'parent';
+requires 'perl', 'v5.8.1';
 
 on configure => sub {
     requires 'Module::Build::Tiny', '0.035';
-    requires 'perl', '5.008_001';
 };
 
 on test => sub {

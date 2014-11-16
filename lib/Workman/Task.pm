@@ -4,7 +4,7 @@ use warnings;
 use utf8;
 
 use Class::Accessor::Lite ro => [qw/name code count/],
-                          rw => [qw/on_start on_done on_abort/];
+                          rw => [qw/on_start on_done on_fail on_abort/];
 
 use Log::Minimal qw/infof warnf/;
 
@@ -43,6 +43,14 @@ sub event_done {
     my $self = shift;
     infof '[%d] FINISH JOB: %s', $$, $self->name;
     $self->on_done->($self) if $self->on_done;
+}
+
+sub event_fail {
+    my ($self, $e) = @_;
+    my $name  = $self->name;
+    my $count = $self->count;
+    warnf '[%d] FAIL JOB: %s (count:%d) Error:%s', $$, $name, $count, "$e";
+    $self->on_fail->($self, $e) if $self->on_fail;
 }
 
 sub event_abort {

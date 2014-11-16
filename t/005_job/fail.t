@@ -16,8 +16,8 @@ is $done,  0, 'should not done yet.';
 is $fail,  0, 'should not fail yet.';
 is $abort, 0, 'should not abort yet.';
 
-$job->done;
+$job->fail;
 
-is $done,  1, 'should done once.';
-is $fail,  0, 'should not fail.';
+is $done,  0, 'should not done.';
+is $fail,  1, 'should fail once.';
 is $abort, 0, 'should not abort';

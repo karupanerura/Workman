@@ -12,7 +12,8 @@ use_ok $_ for qw(
     Workman::Server
     Workman::Server::Exception
     Workman::Server::Exception::DequeueAbort
-    Workman::Server::Exception::ForceKilled
+    Workman::Server::Exception::TaskAbort
+    Workman::Server::Exception::TaskAbort::ForceKilled
     Workman::Server::Exception::TaskNotFound
     Workman::Server::Profile
     Workman::Server::SignalHandler

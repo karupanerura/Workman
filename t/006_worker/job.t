@@ -13,11 +13,10 @@ use Workman::Server::Worker::Job;
 use Parallel::Scoreboard;
 use Sys::SigAction qw/timeout_call/;
 
-my ($result, $e);
+my $result;
 my $queue = do {
     Workman::Queue::Mock->new(
         on_done  => sub { $result = shift },
-        on_abort => sub { $e      = shift },
         on_wait  => sub { $result         },
     );
 };
@@ -112,7 +111,6 @@ subtest 'call baz' => sub {
     $worker->run;
     is_deeply $args, { this => { is => 'baz args' } }, 'should pass baz args.';
     is $bar_job->wait, undef, 'should not return result.';
-    is_deeply $e, { this => { is => 'baz exception' } }, 'should throw baz exception.';
     is $foo_task->count, 1, 'should keep Foo call count.';
     is $bar_task->count, 1, 'should keep Bar call count.';
     is $baz_task->count, 1, 'should call Baz once.'

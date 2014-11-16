@@ -45,7 +45,7 @@ sub plans {
        { name => 'dequeue',        tests => 4 },
     );
     if ($self->queue->can_wait_job && !$self->queue->isa('Workman::Queue::Mock')) {
-        push @plans => { name => 'parallel', tests => 101 };
+        push @plans => { name => 'parallel', tests => 151 };
     }
     return @plans;
 }
@@ -159,14 +159,14 @@ sub check_parallel {
                 });
 
                 my $id = $job->args->{id};
-                if ($id % $num == 0) {
+                if ($id % 2 == 0) {
                     $job->done({
                         num => $num,
                         id  => $id,
                     });
                 }
                 else {
-                    $job->abort({ num => $num });
+                    $job->fail();
                 }
             } continue { Time::HiRes::sleep 0.1 }
         });
@@ -178,13 +178,13 @@ sub check_parallel {
             sleep 1;
             my $req = $self->queue->enqueue(Foo => { id => $id });
             $self->_verbose_log($req);
-            try {
-                my $res = $req->wait;
+            if (my $res = $req->wait) {
+                $self->t->ok($id % 2 == 0, 'should be complete.');
                 $self->t->is_num($res->{id}, $id, 'should fetch result.');
-            } catch {
-                my $e = $_;
-                $self->t->ok($id % $e->{num}, 'should be thrown exception.');
-            };
+            }
+            else {
+                $self->t->ok($id % 2 == 1, 'should be failed.');
+            }
         });
     }
 
