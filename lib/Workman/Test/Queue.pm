@@ -99,7 +99,10 @@ sub check_enqueue {
 
 sub check_dequeue {
     my $self = shift;
-    my $job  = $self->queue->dequeue();
+    my $job;
+    timeout_call 3 => sub {
+        $job = $self->queue->dequeue() until defined $job;
+    };
     $self->_verbose_log($job);
     $self->t->ok($job->isa('Workman::Job'), 'should extend Workman::Job');
     $self->t->is_eq($job->name, 'Foo', 'should fetch Foo');
