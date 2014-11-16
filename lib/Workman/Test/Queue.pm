@@ -4,6 +4,7 @@ use warnings;
 use utf8;
 
 use Test::Builder;
+use Test::Differences ();
 use Test::SharedFork 0.28;
 use Proc::Guard ();
 use Sys::SigAction qw/set_sig_handler timeout_call/;
@@ -115,11 +116,7 @@ sub check_dequeue {
 
 sub _is_deeply {
     my ($self, $got, $expected, $msg) = @_;
-    $self->t->is_eq(
-        $self->json->encode($got),
-        $self->json->encode($expected),
-        $msg
-    );
+    Test::Differences::eq_or_diff($got, $expected, $msg);
 }
 
 sub check_parallel {

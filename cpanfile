@@ -16,6 +16,7 @@ requires 'Scalar::Util';
 requires 'Socket';
 requires 'Sys::SigAction';
 requires 'Test::Builder';
+requires 'Test::Differences';
 requires 'Test::SharedFork', '0.28';
 requires 'Time::HiRes';
 requires 'Try::Tiny', '0.04';
