@@ -26,7 +26,6 @@ use_ok $_ for qw(
     Workman::Task::Class
     Workman::Task::Set
     Workman::Test::Queue
-    Workman::Test::Shared
 );
 
 done_testing;

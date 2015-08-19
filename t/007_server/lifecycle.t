@@ -15,9 +15,9 @@ use Workman::Server::Profile;
 use Workman::Server;
 use Workman::Server::Worker::Mock;
 use Workman::Server::Worker::Job;
-use Workman::Test::Shared;
+use Test::SharedObject;
 
-our $PID_MAP_SHARED = Workman::Test::Shared->new({});
+our $PID_MAP_SHARED = Test::SharedObject->new({});
 
 run();
 exit 0;
@@ -83,7 +83,7 @@ sub worker {
     my $parent_pid = $$;
 
     no warnings qw/redefine once/;
-    my $shared = Workman::Test::Shared->new(0);
+    my $shared = Test::SharedObject->new(0);
     local *Workman::Server::Worker::Job::new = sub {
         my ($expect_shutdown, $expect_abort, $expect_finish);
         Workman::Server::Worker::Mock->new(

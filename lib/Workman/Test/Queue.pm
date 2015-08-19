@@ -12,7 +12,7 @@ use POSIX qw/SA_RESTART/;
 use Time::HiRes;
 use Workman::Task;
 use Workman::Task::Set;
-use Workman::Test::Shared;
+use Test::SharedObject;
 use JSON::XS;
 use Try::Tiny;
 use List::Util qw/sum/;
@@ -125,7 +125,7 @@ sub _is_deeply {
 sub check_parallel {
     my $self = shift;
 
-    my $shared = Workman::Test::Shared->new(0);
+    my $shared = Test::SharedObject->new(0);
 
     my @guard;
     for my $num (1..10) {

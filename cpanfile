@@ -18,6 +18,7 @@ requires 'Sys::SigAction';
 requires 'Test::Builder';
 requires 'Test::Differences';
 requires 'Test::SharedFork', '0.28';
+requires 'Test::SharedObject';
 requires 'Time::HiRes';
 requires 'Try::Tiny', '0.04';
 requires 'parent';
