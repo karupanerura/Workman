@@ -62,6 +62,7 @@
             "Test::Builder" : "0",
             "Test::Differences" : "0",
             "Test::SharedFork" : "0.28",
+            "Test::SharedObject" : "0",
             "Time::HiRes" : "0",
             "Try::Tiny" : "0.04",
             "parent" : "0",
