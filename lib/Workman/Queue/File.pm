@@ -127,3 +127,34 @@ sub dequeue_abort {}
 
 1;
 __END__
+
+=encoding utf-8
+
+=head1 NAME
+
+Workman::Queue::File - a sample queue implementation using file system
+
+=head1 WARNING
+
+DO *NOT* USE IT IN PRODUCTION.
+
+=head1 DESCRIPTION
+
+This is a sample queue module implementation using file system.
+You should use this module for testing or debbuging only.
+If you want to use it, you should read this code before using.
+So I don't write documents about interface specs in pod.
+
+=head1 LICENSE
+
+Copyright (C) karupanerura.
+
+This library is free software; you can redistribute it and/or modify
+it under the same terms as Perl itself.
+
+=head1 AUTHOR
+
+karupanerura E<lt>karupa@cpan.orgE<gt>
+
+=cut
+

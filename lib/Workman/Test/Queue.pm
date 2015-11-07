@@ -206,7 +206,7 @@ __END__
 
 =head1 NAME
 
-Workman::Test::Queue - provide testing cases for Workman::Queue
+Workman::Test::Queue - provided testing cases for Workman::Queue
 
 =head1 SYNOPSIS
 
@@ -227,7 +227,7 @@ Workman::Test::Queue - provide testing cases for Workman::Queue
 
 =head1 DESCRIPTION
 
-Workman::Test::Queue provide testing cases for Workman.
+Workman::Test::Queue provides some testing cases for Workman::Queue modules.
 
 =head1 LICENSE
 
