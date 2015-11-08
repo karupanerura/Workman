@@ -40,7 +40,34 @@ Workman - light weight job-queue worker framework
 
 # DESCRIPTION
 
-Workman is ...
+Workman is light weight job-queue worker framework.
+
+## FEATURES
+
+### UNIX SIGNALS HANDLING SUPPORT
+
+UNIX signals handling is needed to manage worker status. (e.g. shutdown, restart, etc..)
+So it's a very important probolem. but, it's very difficult to a lot of application engineers. (also it's difficult to test.)
+Workman support UNIX signals management as easily and safely. Workman's signal handling code is covered in testing cases.
+
+### INTERCHANGEABLE
+
+A lot of job-queue engines exists in the world.
+But, some application developpers cannot select job-queue engine as the case may be.
+There want to change job-queue engines easily, and don't want to change my code.
+Workman support to change job-queue engines easily, and change a little my code.
+
+### PLUGGABLE
+
+Workman supports some job-queue engines (e.g. Q4M, Gearman, etc..), but we can manage job-queue engines in same interface on Workman.
+If you want to write [Workman::Queue](https://metacpan.org/pod/Workman::Queue) sub-class, don't worry.
+We provided testing cases as a module. SEE ALSO: [Workman::Test::Queue](https://metacpan.org/pod/Workman::Test::Queue)
+
+# SEE ALSO
+
+[Workman::Queue](https://metacpan.org/pod/Workman::Queue)
+[Workman::Client](https://metacpan.org/pod/Workman::Client)
+[Workman::Server](https://metacpan.org/pod/Workman::Server)
 
 # LICENSE
 
@@ -51,4 +78,4 @@ it under the same terms as Perl itself.
 
 # AUTHOR
 
-karupanerura <karupa@cpan.org>
+karupanerura &lt;karupa@cpan.org>
