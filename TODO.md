@@ -1,6 +1,9 @@
 # split to another package and write test
-* Workman::Queue::Q4M
-* Workman::Queue::Gearman
+* Workman::Queue::Q4M     # WANTS DOCUMENTATION
+* Workman::Queue::Qudo    # WANTS DOCUMENTATION
+* Workman::Queue::Gearman # WANTS DOCUMENTATION
+* Workman::Queue::Jonk    # WANTS INPLEMENTATION
+* Workman::Queue::Resque  # WANTS INPLEMENTATION
 
 # write docs for
 * Workman
@@ -15,4 +18,4 @@
 * Workman::Queue::Mock
 
 # promotion
-* YAPC::Asia 2014
+* YAPC::Asia 2016?
