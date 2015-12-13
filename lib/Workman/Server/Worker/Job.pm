@@ -112,7 +112,7 @@ sub work_job {
         else {
             $self->stat->{fail}++;
             $self->update_scoreboard_status_failure($job, $e);
-            $job->fail();
+            $job->fail($e);
             $task->event_fail($e) if $task;
         }
     }
