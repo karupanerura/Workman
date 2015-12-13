@@ -3,7 +3,11 @@ use strict;
 use warnings;
 use utf8;
 
-use Class::Accessor::Lite ro => [qw/name code count/],
+use overload
+    '""' => 'name',
+    fallback => 1;
+
+use Class::Accessor::Lite ro => [qw/code count/],
                           rw => [qw/on_start on_done on_fail on_abort/];
 
 use Log::Minimal qw/infof warnf/;
@@ -15,6 +19,12 @@ sub new {
         code  => $code,
         count => 0,
     } => $class;
+}
+
+sub name {
+    my $invocant = shift;
+    return $invocant->{name} if ref $invocant;
+    return $invocant;
 }
 
 sub run {
