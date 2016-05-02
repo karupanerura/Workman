@@ -77,7 +77,10 @@ sub _create_admin_workers {
     my $self = shift;
 
     my $worker = Workman::Server::Worker::Admin->new(profile => $self->profile, scoreboard => $self->scoreboard);
-    my $guard  = Proc::Guard->new(code => sub { $worker->run });
+    my $guard  = Proc::Guard->new(code => sub {
+        $worker->run;
+        exit 0;
+    });
 
     my $pid = $self->{admin_pid} = $guard->pid;
     infof '[%d] START ADMIN WORKER', $pid;

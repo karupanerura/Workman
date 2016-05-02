@@ -169,6 +169,8 @@ sub check_parallel {
                     $job->fail();
                 }
             } continue { Time::HiRes::sleep 0.1 }
+
+            exit 0;
         });
     }
 
@@ -185,13 +187,15 @@ sub check_parallel {
             else {
                 $self->t->ok($id % 2 == 1, 'should be failed.');
             }
+
+            exit 0;
         });
     }
 
     my $is_timeout = timeout_call 30 => sub {
         my $c = 0;
         until ($c == 100) {
-            $shared->txn(sub { $c = shift });
+            $c = $shared->get();
         } continue { sleep 1 }
         undef @guard;
         $self->t->ok(1, 'complete');
